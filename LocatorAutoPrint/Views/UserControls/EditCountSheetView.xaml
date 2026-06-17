@@ -1,0 +1,112 @@
+﻿<UserControl x:Class="LocatorAutoPrint.Views.UserControls.EditCountSheetView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+             Background="{StaticResource Brush.LightGray}">
+    <Grid Margin="16,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Search -->
+            <RowDefinition Height="*"/>
+            <!-- Form -->
+        </Grid.RowDefinitions>
+
+        <!-- HEADER CARD -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <fa:IconBlock Icon="FilePen" Foreground="{StaticResource Brush.PrimaryBlue}" FontSize="16" Margin="0,0,10,0"/>
+                    <TextBlock Text="Edit Count Sheet" Style="{StaticResource Text.Header}" FontSize="16" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Command="{Binding EditCommand}" IsEnabled="{Binding IsViewMode}" Style="{StaticResource SecondaryActionButton}" Width="80" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="PenToSquare" FontSize="10" Margin="0,0,6,0"/>
+                            <TextBlock Text="Edit"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource PrimaryActionButton}" Width="80" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="FloppyDisk" FontSize="10" Margin="0,0,6,0"/>
+                            <TextBlock Text="Save"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding CancelCommand}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource SecondaryActionButton}" Width="80">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="Xmark" FontSize="10" Margin="0,0,6,0"/>
+                            <TextBlock Text="Cancel"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- SEARCH BAR CARD -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Locator:" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Column="1" Text="{Binding SearchLocator, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Height="28"/>
+
+                <TextBlock Grid.Column="2" Text="Record No:" VerticalAlignment="Center" Margin="16,0,8,0" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Column="3" Text="{Binding SearchRecNo, UpdateSourceTrigger=PropertyChanged, Delay=400}" Style="{StaticResource ModernTextBox}" Height="28"/>
+
+                <Button Grid.Column="5" Command="{Binding PrintEditedCommand}" Style="{StaticResource SecondaryActionButton}" Padding="10,6">
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="Print" FontSize="11" Margin="0,0,6,0"/>
+                        <TextBlock Text="Print Edited"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- FORM DETAILS CARD -->
+        <Border Grid.Row="2" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <!-- Description takes remaining space -->
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="UPC:" VerticalAlignment="Center" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CurrentRecord.UPC, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource ModernTextBox}" Height="28" Margin="0,0,8,0"/>
+                <Button Grid.Row="0" Grid.Column="2" Command="{Binding SearchItemCommand}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource SecondaryActionButton}" Padding="8,6">
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="MagnifyingGlass" FontSize="10" Margin="0,0,6,0"/>
+                        <TextBlock Text="Search Masterfile"/>
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="SKU:" VerticalAlignment="Center" Margin="0,10,0,0" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding CurrentRecord.SKU, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource ModernTextBox}" Height="28" Margin="0,10,0,0"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Description:" VerticalAlignment="Top" Margin="0,10,0,0" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding CurrentRecord.Descr, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource ModernTextBox}" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Edited Qty:" VerticalAlignment="Center" Margin="0,10,0,0" FontWeight="Bold" Style="{StaticResource Text.Body}"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding CurrentRecord.EditedQty, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditMode}" Style="{StaticResource ModernTextBox}" Height="28" Margin="0,10,8,0"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding CurrentRecord.OriginalQty, StringFormat='(Original Count: {0})'}" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="#7F8C8D" FontSize="11"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

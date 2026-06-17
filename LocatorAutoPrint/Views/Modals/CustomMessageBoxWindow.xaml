@@ -1,0 +1,65 @@
+﻿<Window x:Class="LocatorAutoPrint.Views.Modals.CustomMessageBoxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        Title="{Binding WindowTitle}" Width="420" SizeToContent="Height" 
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize" 
+        WindowStyle="ToolWindow" Background="{StaticResource Brush.LightGray}" MinHeight="160">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- MESSAGE CONTENT CARD -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" 
+                BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ICON AREA -->
+                <Border Grid.Column="0" Background="{StaticResource Brush.PrimaryBlue}" 
+                        CornerRadius="4" Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Top">
+                    <fa:IconBlock x:Name="MessageIcon" Icon="CircleInfo" Foreground="{StaticResource Brush.PrimaryYellow}" 
+                                  FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- MESSAGE TEXT -->
+                <TextBlock x:Name="MessageTextBlock" Grid.Column="1" TextWrapping="Wrap" 
+                           Style="{StaticResource Text.Body}" FontSize="13" 
+                           VerticalAlignment="Center" HorizontalAlignment="Left"/>
+            </Grid>
+        </Border>
+
+        <!-- BUTTONS -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="BtnYes" Width="90" Height="32" Margin="0,0,8,0" 
+                    Click="BtnYes_Click" Visibility="Collapsed" Style="{StaticResource PrimaryActionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="Check" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="Yes"/>
+                </StackPanel>
+            </Button>
+
+            <Button x:Name="BtnNo" Width="90" Height="32" Margin="0,0,8,0" 
+                    Click="BtnNo_Click" Visibility="Collapsed" Style="{StaticResource DestructiveActionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="Xmark" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="No"/>
+                </StackPanel>
+            </Button>
+
+            <Button x:Name="BtnOk" Width="90" Height="32" 
+                    Click="BtnOk_Click" Visibility="Collapsed" Style="{StaticResource PrimaryActionButton}">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="Check" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="OK"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

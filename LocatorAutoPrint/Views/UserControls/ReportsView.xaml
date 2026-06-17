@@ -1,0 +1,241 @@
+﻿<UserControl x:Class="LocatorAutoPrint.Views.UserControls.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+             Background="{StaticResource Brush.LightGray}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid Margin="16,12">
+        <TabControl Style="{StaticResource ModernTabControl}">
+
+            <!-- INF REPORT TAB -->
+            <TabItem Style="{StaticResource ModernTabItem}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="FileLines" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock Text="INF Report"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- Buttons -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Loading Bar -->
+                        <RowDefinition Height="*"/>
+                        <!-- DataGrid -->
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Command="{Binding LoadInfCommand}" Style="{StaticResource PrimaryActionButton}" Width="160">
+                            <StackPanel Orientation="Horizontal">
+                                <fa:IconBlock Icon="Database" FontSize="11" Margin="0,0,6,0"/>
+                                <TextBlock Text="Generate INF Report"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ExportInfToPdfCommand}" Style="{StaticResource SecondaryActionButton}" Width="140" Margin="8,0,0,0" ToolTip="Exports the loaded dataset to PDF.">
+                            <StackPanel Orientation="Horizontal">
+                                <fa:IconBlock Icon="FilePdf" FontSize="11" Margin="0,0,6,0"/>
+                                <TextBlock Text="Export to PDF"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" Style="{StaticResource ModernProgressBar}" Margin="0,0,0,8"/>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding InfRecords}" Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="SlotNo" Binding="{Binding SlotNo}" Width="60" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="RecNo" Binding="{Binding RecNo}" Width="60" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="UPC" Binding="{Binding UPC}" Width="100" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="SKU" Binding="{Binding SKU}" Width="70" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Descr}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="60" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="2" Text="No INF records found." Visibility="{Binding HasNoInfRecords, Converter={StaticResource BoolToVis}}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#7F8C8D" FontWeight="SemiBold"/>
+                </Grid>
+            </TabItem>
+
+            <!-- SKU INQUIRY TAB -->
+            <TabItem Style="{StaticResource ModernTabItem}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="Barcode" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock Text="SKU Inquiry"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Search Keyword:" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource Text.Body}"/>
+                        <TextBox Text="{Binding SkuSearchQuery, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Width="200" Height="28"/>
+                        <Button IsDefault="True" Command="{Binding SearchSkuCommand}" Style="{StaticResource PrimaryActionButton}" Width="90" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <fa:IconBlock Icon="MagnifyingGlass" FontSize="11" Margin="0,0,6,0"/>
+                                <TextBlock Text="Search"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" Style="{StaticResource ModernProgressBar}" Margin="0,0,0,8"/>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding SkuResults}" Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}"
+                  SelectionMode="Single" SelectionUnit="FullRow" IsReadOnly="True" AutoGenerateColumns="False"
+                  MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy UPC" Command="{Binding CopyUpcCommand}">
+                                    <MenuItem.Icon>
+                                        <fa:IconBlock Icon="Copy" Foreground="{StaticResource Brush.PrimaryBlue}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Copy SKU" Command="{Binding CopySkuCommand}">
+                                    <MenuItem.Icon>
+                                        <fa:IconBlock Icon="Copy" Foreground="{StaticResource Brush.PrimaryBlue}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Copy Description" Command="{Binding CopyDescriptionCommand}">
+                                    <MenuItem.Icon>
+                                        <fa:IconBlock Icon="Copy" Foreground="{StaticResource Brush.PrimaryBlue}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+                                <MenuItem Header="Copy All Columns" Command="{Binding CopyAllColumnsCommand}">
+                                    <MenuItem.Icon>
+                                        <fa:IconBlock Icon="Clipboard" Foreground="{StaticResource Brush.PrimaryBlue}"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="UPC" Binding="{Binding UPC}" Width="120"/>
+                            <DataGridTextColumn Header="SKU" Binding="{Binding SKU}" Width="80"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- No Results Message -->
+                    <TextBlock Grid.Row="2" Text="No items found matching your search." 
+                   Visibility="{Binding HasNoSkuResults, Converter={StaticResource BoolToVis}}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#7F8C8D" FontWeight="SemiBold"/>
+
+                    <!-- Copy Feedback Indicator -->
+                    <Border Grid.Row="2" Background="#2ECC71" CornerRadius="4" Padding="12,8" 
+                Visibility="{Binding ShowCopyFeedback, Converter={StaticResource BoolToVis}}"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="Check" Foreground="White" FontSize="12" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding CopyFeedbackMessage}" Foreground="White" FontWeight="SemiBold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- SUMMARY TAB -->
+            <TabItem Style="{StaticResource ModernTabItem}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="ChartPie" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock Text="Summary"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Button Command="{Binding LoadSummaryCommand}" Style="{StaticResource SecondaryActionButton}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="ArrowsRotate" FontSize="11" Margin="0,0,6,0"/>
+                            <TextBlock Text="Refresh Summary"/>
+                        </StackPanel>
+                    </Button>
+
+                    <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" Style="{StaticResource ModernProgressBar}" Margin="0,0,0,8"/>
+
+                    <DataGrid HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" Grid.Row="2" ItemsSource="{Binding SummaryRecords}" Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Locator (SlotNo)" Binding="{Binding SlotNo}" Width="100" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Total Qty" Binding="{Binding TotalQty}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="SKU Count" Binding="{Binding SkuCount}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Remarks" Binding="{Binding Remarks}" Width="*" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- STOCK VALUE TAB -->
+            <TabItem Style="{StaticResource ModernTabItem}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="Coins" FontSize="12" Margin="0,0,6,0"/>
+                        <TextBlock Text="Stock Value"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Button Command="{Binding LoadStockCommand}" Style="{StaticResource SecondaryActionButton}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:IconBlock Icon="ArrowsRotate" FontSize="11" Margin="0,0,6,0"/>
+                            <TextBlock Text="Refresh Stock Value"/>
+                        </StackPanel>
+                    </Button>
+
+                    <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" Style="{StaticResource ModernProgressBar}" Margin="0,0,0,8"/>
+
+                    <DataGrid VerticalScrollBarVisibility="hidden" Grid.Row="2" ItemsSource="{Binding StockValues}" Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="SKU" Binding="{Binding Sku}" Width="80" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="On Hand" Binding="{Binding OnHand}" Width="80" IsReadOnly="True"/>
+
+                            <!-- Unit Cost with Peso Sign -->
+                            <DataGridTemplateColumn Header="Unit Cost" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock HorizontalAlignment="Right">
+                                <Run Text="₱"/>
+                                <Run Text="{Binding UnitAveCost, StringFormat={}{0:N2}}"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Stock Amount with Peso Sign -->
+                            <DataGridTemplateColumn Header="Stock Amount" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock HorizontalAlignment="Right">
+                                <Run Text="₱"/>
+                                <Run Text="{Binding StockAmt, StringFormat={}{0:N2}}"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="2" Text="Stock Value not loaded or no data available." Visibility="{Binding HasNoStockData, Converter={StaticResource BoolToVis}}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" Foreground="#7F8C8D" FontWeight="SemiBold"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

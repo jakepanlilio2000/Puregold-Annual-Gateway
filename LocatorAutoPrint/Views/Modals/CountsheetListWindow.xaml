@@ -1,0 +1,78 @@
+﻿<Window x:Class="LocatorAutoPrint.Views.Modals.CountsheetListWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        Title="Countsheet List Management" Width="600" Height="450" 
+        WindowStartupLocation="CenterOwner" 
+        Background="{StaticResource Brush.LightGray}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- HEADER CARD -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" 
+                BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="ListCheck" Foreground="{StaticResource Brush.PrimaryBlue}" 
+                                  FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Countsheet List Management" Style="{StaticResource Text.Header}" 
+                               FontSize="14" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- SEARCH BOX -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <fa:IconBlock Icon="MagnifyingGlass" Foreground="{StaticResource Brush.NeutralGray}" 
+                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Text="{Binding SearchLocatorQuery, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource ModernTextBox}" Width="180" Height="28" 
+                             ToolTip="Type Locator to filter results"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ACTION BUTTONS -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button Command="{Binding LoadCountsheetListCommand}" Style="{StaticResource SecondaryActionButton}" 
+                    Width="100" Height="32" Margin="0,0,8,0">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="ArrowsRotate" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="Refresh"/>
+                </StackPanel>
+            </Button>
+
+            <Button Command="{Binding ViewCountsheetCommand}" Style="{StaticResource PrimaryActionButton}" 
+                    Width="90" Height="32" Margin="0,0,8,0">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="Eye" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="View"/>
+                </StackPanel>
+            </Button>
+
+            <Button Command="{Binding BackupCountsheetCommand}" Style="{StaticResource WarningActionButton}" 
+                    Width="auto" Height="32">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="FileExport" FontSize="11" Margin="0,0,6,0"/>
+                    <TextBlock Text="Backup"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <!-- DATAGRID CARD -->
+        <Border Grid.Row="2" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" 
+                BorderThickness="1" CornerRadius="6" Padding="12">
+            <DataGrid ItemsSource="{Binding CountsheetList}" SelectedItem="{Binding SelectedCountsheetLocator}" 
+                      Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Locator (SlotNo)" Binding="{Binding SlotNo}" IsReadOnly="True" Width="120"/>
+                    <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" IsReadOnly="True" Width="80"/>
+                    <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                    <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</Window>

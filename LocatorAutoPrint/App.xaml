@@ -1,0 +1,242 @@
+﻿<Application x:Class="LocatorAutoPrint.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Application.Resources>
+        <!--<ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+
+                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Blue" SecondaryColor="Amber" />
+
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>-->
+        <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+            <!-- 1. PUREGOLD COLOR PALETTE -->
+            <Color x:Key="Color.PrimaryYellow">#FFD400</Color>
+            <Color x:Key="Color.PrimaryBlue">#005BAC</Color>
+            <Color x:Key="Color.DarkBlue">#003B73</Color>
+            <Color x:Key="Color.White">#FFFFFF</Color>
+            <Color x:Key="Color.LightGray">#F5F6F8</Color>
+            <Color x:Key="Color.NeutralGray">#D9D9D9</Color>
+
+            <SolidColorBrush x:Key="Brush.PrimaryYellow" Color="{StaticResource Color.PrimaryYellow}"/>
+            <SolidColorBrush x:Key="Brush.PrimaryBlue" Color="{StaticResource Color.PrimaryBlue}"/>
+            <SolidColorBrush x:Key="Brush.DarkBlue" Color="{StaticResource Color.DarkBlue}"/>
+            <SolidColorBrush x:Key="Brush.White" Color="{StaticResource Color.White}"/>
+            <SolidColorBrush x:Key="Brush.LightGray" Color="{StaticResource Color.LightGray}"/>
+            <SolidColorBrush x:Key="Brush.NeutralGray" Color="{StaticResource Color.NeutralGray}"/>
+
+            <!-- 2. TYPOGRAPHY -->
+            <Style x:Key="Text.Header" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="13"/>
+            </Style>
+            <Style x:Key="Text.Body" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="FontSize" Value="12"/>
+            </Style>
+
+            <!-- 3. BASE BUTTON TEMPLATE (MUST BE FIRST) -->
+            <Style x:Key="ModernButton" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource Brush.PrimaryBlue}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.White}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="12,6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.DarkBlue}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#002855"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- MODERN PROGRESS BAR -->
+            <Style x:Key="ModernProgressBar" TargetType="ProgressBar">
+                <Setter Property="Background" Value="{StaticResource Brush.LightGray}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.PrimaryYellow}"/>
+                <Setter Property="Height" Value="4"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+            </Style>
+            
+            <!-- 4. DERIVED BUTTONS -->
+            <Style x:Key="PrimaryActionButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                <Setter Property="Background" Value="{StaticResource Brush.PrimaryYellow}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryYellow}"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#E6BF00"/>
+                        <Setter Property="BorderBrush" Value="#E6BF00"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="SecondaryActionButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                <Setter Property="Background" Value="{StaticResource Brush.White}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.PrimaryBlue}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.NeutralGray}"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource Brush.LightGray}"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryBlue}"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="WarningActionButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                <Setter Property="Background" Value="#F39C12"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.White}"/>
+                <Setter Property="BorderBrush" Value="#F39C12"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#D68910"/>
+                        <Setter Property="BorderBrush" Value="#D68910"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="DestructiveActionButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                <Setter Property="Background" Value="{StaticResource Brush.White}"/>
+                <Setter Property="Foreground" Value="#E74C3C"/>
+                <Setter Property="BorderBrush" Value="#E74C3C"/>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#FDEDEC"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- 5. NAV PILL BUTTON -->
+            <Style x:Key="NavPillButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Margin" Value="0,0,4,0"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="12,8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.LightGray}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 6. MODERN TEXTBOX -->
+            <Style x:Key="ModernTextBox" TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource Brush.White}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.NeutralGray}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8,6"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" SnapsToDevicePixels="True">
+                                <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.PrimaryBlue}"/>
+                                </Trigger>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.PrimaryBlue}"/>
+                                    <Setter TargetName="border" Property="BorderThickness" Value="1.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 7. MODERN TAB CONTROL -->
+            <Style x:Key="ModernTabControl" TargetType="TabControl">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+            </Style>
+            <Style x:Key="ModernTabItem" TargetType="TabItem">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="border" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="12,8" Margin="0,0,4,0" Cursor="Hand">
+                                <ContentPresenter x:Name="content" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.NeutralGray}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.PrimaryBlue}"/>
+                                    <Setter TargetName="content" Property="TextBlock.Foreground" Value="{StaticResource Brush.PrimaryBlue}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- 8. MODERN DATAGRID -->
+            <Style x:Key="ModernDataGrid" TargetType="DataGrid">
+                <Setter Property="Background" Value="{StaticResource Brush.White}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.NeutralGray}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="RowBackground" Value="{StaticResource Brush.White}"/>
+                <Setter Property="AlternatingRowBackground" Value="{StaticResource Brush.LightGray}"/>
+                <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+                <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Brush.NeutralGray}"/>
+                <Setter Property="HeadersVisibility" Value="Column"/>
+                <Setter Property="SelectionMode" Value="Single"/>
+                <Setter Property="AutoGenerateColumns" Value="False"/>
+                <Setter Property="CanUserAddRows" Value="False"/>
+                <Setter Property="CanUserDeleteRows" Value="False"/>
+                <Setter Property="FontSize" Value="11"/>
+            </Style>
+            <Style x:Key="ModernDataGridColumnHeader" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="Foreground" Value="{StaticResource Brush.White}"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.DarkBlue}"/>
+                <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                <Setter Property="SeparatorBrush" Value="{StaticResource Brush.DarkBlue}"/>
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

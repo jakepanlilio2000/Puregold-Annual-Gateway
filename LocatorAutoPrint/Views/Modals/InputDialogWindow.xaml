@@ -1,0 +1,27 @@
+﻿<Window x:Class="LocatorAutoPrint.Views.Modals.InputDialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        Title="Input Request" Width="350" Height="170" 
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize" WindowStyle="ToolWindow" 
+        Background="{StaticResource Brush.LightGray}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <fa:IconBlock Icon="Keyboard" Foreground="{StaticResource Brush.PrimaryBlue}" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="PromptTextBlock" Text="Enter value:" TextWrapping="Wrap" Style="{StaticResource Text.Header}" FontSize="14" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <TextBox x:Name="InputTextBox" Grid.Row="1" Style="{StaticResource ModernTextBox}" Height="30" VerticalContentAlignment="Center"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,12,0,0">
+            <Button Content="Cancel" Width="80" Height="30" IsCancel="True" Click="CancelButton_Click" Style="{StaticResource SecondaryActionButton}" Margin="0,0,8,0"/>
+            <Button Content="OK" Width="80" Height="30" IsDefault="True" Click="OkButton_Click" Style="{StaticResource PrimaryActionButton}"/>
+        </StackPanel>
+    </Grid>
+</Window>
