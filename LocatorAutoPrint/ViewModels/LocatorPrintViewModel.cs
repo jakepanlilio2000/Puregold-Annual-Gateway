@@ -17,6 +17,7 @@ namespace LocatorAutoPrint.ViewModels
         private readonly LocatorMaintenanceViewModel _maintenanceVM;
         private readonly RestoreService _restoreService;
         private readonly DispatcherTimer _timer;
+        private bool _hasShownProgressError = false;
 
         private string _locatorInput;
         public string LocatorInput
@@ -107,7 +108,21 @@ namespace LocatorAutoPrint.ViewModels
         private async System.Threading.Tasks.Task LoadStatsAsync()
         {
             var newStats = await _dbService.GetProgressPercentagesAsync();
-            Stats = newStats;
+
+            if (newStats.HasError && !_hasShownProgressError)
+            {
+                _hasShownProgressError = true;
+                CustomMessageBox.Show($"Live Progress failed to update due to a database error:\n\n{newStats.ErrorMessage}", "Progress Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            else if (!newStats.HasError)
+            {
+                _hasShownProgressError = false;
+            }
+
+            if (!newStats.HasError)
+            {
+                Stats = newStats;
+            }
         }
 
         private async System.Threading.Tasks.Task ExecutePrintAsync()

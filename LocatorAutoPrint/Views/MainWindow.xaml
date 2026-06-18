@@ -4,11 +4,11 @@
         xmlns:local="clr-namespace:LocatorAutoPrint.ViewModels"
         xmlns:views="clr-namespace:LocatorAutoPrint.Views.UserControls"
         xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
-        Title="Locator Auto-Print &amp; Edit" 
+        Title="Annual &amp; Variance Gateway" 
         Width="565" Height="565" 
         ResizeMode="NoResize" 
         WindowStartupLocation="CenterScreen" 
-        Background="{StaticResource Brush.LightGray}" Icon="/Views/icon.png">
+        Background="{StaticResource Brush.LightGray}">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -74,7 +74,7 @@
         </Border>
 
         <!-- CONTENT AREA -->
-        <ContentControl Grid.Row="2" Content="{Binding CurrentViewModel}" Margin="0">
+        <ContentControl Grid.Row="2" Content="{Binding CurrentViewModel}">
             <ContentControl.Resources>
                 <DataTemplate DataType="{x:Type local:LocatorPrintViewModel}">
                     <views:LocatorPrintView />
@@ -99,11 +99,9 @@
                         <fa:IconBlock.Style>
                             <Style TargetType="fa:IconBlock">
                                 <Setter Property="Foreground" Value="#2ECC71"/>
-                                <!-- Green -->
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding DbStatus}" Value="SQL Server Disconnected">
                                         <Setter Property="Foreground" Value="#E74C3C"/>
-                                        <!-- Red -->
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>

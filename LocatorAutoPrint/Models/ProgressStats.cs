@@ -15,5 +15,9 @@
         public StatGroup Selling { get; set; } = new StatGroup();
         public StatGroup Warehouse { get; set; } = new StatGroup();
         public StatGroup Buffer { get; set; } = new StatGroup();
+
+
+        public string ErrorMessage { get; set; }
+        public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     }
 }

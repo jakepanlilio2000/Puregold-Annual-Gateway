@@ -27,35 +27,47 @@ namespace LocatorAutoPrint.Services
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
+                    bool hasStockLocation = false;
+                    using (var checkCmd = conn.CreateCommand())
+                    {
+                        checkCmd.CommandText = "SELECT 1 FROM sys.columns WHERE Name = N'stocklocation' AND Object_ID = Object_ID(N'PUREGOLD.dbo.PRELOC')";
+                        var result = await checkCmd.ExecuteScalarAsync();
+                        hasStockLocation = (result != null);
+                    }
+                    string locationColumnLogic = hasStockLocation
+                        ? "ISNULL(NULLIF(LTRIM(RTRIM(pre.stocklocation)), ''), pre.bayname)"
+                        : "pre.bayname";
                     using (var cmd = conn.CreateCommand())
                     {
-                        cmd.CommandText = @"
-                            SELECT 
-                                pre.Name AS Location,
-                                pre.stocklocation,
-                                SUM(CASE 
-                                        WHEN ISNULL(pre.statusCancel, 0) <> 1 
-                                         AND ISNULL(loc.InUse, 0) <> 1 
-                                         AND ISNULL(loc.Closed, 0) = 1 
-                                        THEN 1 ELSE 0 
-                                    END) AS CompletedBays,
-                                SUM(CASE WHEN ISNULL(pre.statusCancel, 0) = 1 THEN 1 ELSE 0 END) AS CancelledBays,
-                                COUNT(pre.SlotNo) AS TotalBays
-                            FROM PUREGOLD.dbo.PRELOC pre
-                            LEFT JOIN PUREGOLD.dbo.LOCATOR loc 
-                                ON loc.SlotNo = pre.SlotNo
-                            GROUP BY pre.Name, pre.stocklocation";
+                        cmd.CommandText = $@"
+                    SELECT 
+                        pre.Name AS Location,
+                        {locationColumnLogic} AS stocklocation,
+                        SUM(CASE 
+                                WHEN ISNULL(pre.statusCancel, 0) <> 1 
+                                 AND ISNULL(loc.InUse, 0) <> 1 
+                                 AND ISNULL(loc.Closed, 0) = 1 
+                                THEN 1 ELSE 0 
+                            END) AS CompletedBays,
+                        SUM(CASE WHEN ISNULL(pre.statusCancel, 0) = 1 THEN 1 ELSE 0 END) AS CancelledBays,
+                        COUNT(pre.SlotNo) AS TotalBays
+                    FROM PUREGOLD.dbo.PRELOC pre
+                    LEFT JOIN PUREGOLD.dbo.LOCATOR loc 
+                        ON loc.SlotNo = pre.SlotNo
+                    GROUP BY 
+                        pre.Name, 
+                        {locationColumnLogic}";
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
                             while (await reader.ReadAsync())
                             {
-                                string loc = reader["Location"].ToString().ToLower();
-                                string stockloc = reader["stocklocation"].ToString().ToLower();
+                                string loc = reader["Location"] != DBNull.Value ? reader["Location"].ToString().ToLower() : "";
+                                string stockloc = reader["stocklocation"] != DBNull.Value ? reader["stocklocation"].ToString().ToLower() : "";
 
-                                double comp = Convert.ToDouble(reader["CompletedBays"]);
-                                double cancel = Convert.ToDouble(reader["CancelledBays"]);
-                                double total = Convert.ToDouble(reader["TotalBays"]);
+                                double comp = reader["CompletedBays"] != DBNull.Value ? Convert.ToDouble(reader["CompletedBays"]) : 0;
+                                double cancel = reader["CancelledBays"] != DBNull.Value ? Convert.ToDouble(reader["CancelledBays"]) : 0;
+                                double total = reader["TotalBays"] != DBNull.Value ? Convert.ToDouble(reader["TotalBays"]) : 0;
 
                                 if (stockloc.Contains("top load") || stockloc.Contains("buffer"))
                                 {
@@ -74,7 +86,10 @@ namespace LocatorAutoPrint.Services
                     }
                 }
             }
-            catch {  }
+            catch (Exception ex)
+            {
+                stats.ErrorMessage = ex.Message;
+            }
 
             double Calc(double c, double cx, double t) => (t - cx) <= 0 ? 0 : (c / (t - cx)) * 100;
 
