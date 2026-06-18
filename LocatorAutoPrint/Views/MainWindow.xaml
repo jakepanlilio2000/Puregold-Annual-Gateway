@@ -8,7 +8,7 @@
         Width="565" Height="565" 
         ResizeMode="NoResize" 
         WindowStartupLocation="CenterScreen" 
-        Background="{StaticResource Brush.LightGray}">
+        Background="{StaticResource Brush.LightGray}" Icon="/Views/icon.png">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>

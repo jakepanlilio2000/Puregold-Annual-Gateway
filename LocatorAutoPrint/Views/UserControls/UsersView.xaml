@@ -6,17 +6,17 @@
              Background="{StaticResource Brush.LightGray}">
     <Grid Margin="12,8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" MaxHeight="280"/>
+            <RowDefinition Height="200"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- TOP PANEL: FORM CARD -->
         <Border Grid.Row="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,8">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="100"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Text="User Management" Style="{StaticResource Text.Header}" FontSize="14" Margin="0,0,0,10"/>
@@ -106,10 +106,8 @@
                 <DataGrid Grid.Row="1" ItemsSource="{Binding UsersList}" SelectedItem="{Binding SelectedUser}" VerticalScrollBarVisibility="Hidden"
                           Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
                     <DataGrid.Columns>
-
                         <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Full Name" Binding="{Binding Fullname}" Width="*" IsReadOnly="True"/>
-
                         <DataGridTextColumn Header="Last Login" Binding="{Binding LastLogin, StringFormat={}{0:MM/dd/yy HH:mm}}" Width="*" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Active Loc" Binding="{Binding ActiveLocator}" Width="*" IsReadOnly="True"/>
                         <DataGridCheckBoxColumn Header="Is Login?" Binding="{Binding IsLogin, Mode=OneWay}" Width="*" IsReadOnly="True"/>
