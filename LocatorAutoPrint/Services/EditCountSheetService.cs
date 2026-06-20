@@ -58,9 +58,9 @@ namespace LocatorAutoPrint.Services
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        SELECT cupc, sku, citem 
-                        FROM exclusivesdb.dbo.TBLpricechk 
-                        WHERE cupc LIKE @kw OR sku LIKE @kw OR citem LIKE @kw";
+                SELECT UPC, SKU, Descr 
+                FROM PUREGOLD.dbo.items 
+                WHERE UPC LIKE @kw OR SKU LIKE @kw OR Descr LIKE @kw";
 
                     cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
 
@@ -70,9 +70,9 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new ItemLookupResult
                             {
-                                UPC = reader["cupc"].ToString(),
-                                SKU = Convert.ToDecimal(reader["sku"]).ToString("0"), 
-                                Description = reader["citem"].ToString()
+                                UPC = reader["UPC"].ToString(),
+                                SKU = Convert.ToDecimal(reader["SKU"]).ToString("0"),
+                                Description = reader["Descr"].ToString()
                             });
                         }
                     }

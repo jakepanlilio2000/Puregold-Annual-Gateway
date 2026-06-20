@@ -1,9 +1,12 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Input;
-using LocatorAutoPrint.Commands;
+﻿using LocatorAutoPrint.Commands;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 namespace LocatorAutoPrint.ViewModels
 {
@@ -81,6 +84,29 @@ namespace LocatorAutoPrint.ViewModels
             UsersList.Clear();
             var list = await _userService.GetUsersAsync();
             foreach (var u in list) UsersList.Add(u);
+            var pingTasks = UsersList.Where(u => !string.IsNullOrWhiteSpace(u.IpAddress)).Select(async user =>
+            {
+                user.IsOnline = await PingAddressAsync(user.IpAddress);
+            });
+            await Task.WhenAll(pingTasks);
+        }
+
+        private async Task<bool> PingAddressAsync(string ipAddress)
+        {
+            if (string.IsNullOrWhiteSpace(ipAddress)) return false;
+
+            try
+            {
+                using (var pinger = new Ping())
+                {
+                    var reply = await pinger.SendPingAsync(ipAddress, 1000);
+                    return reply.Status == IPStatus.Success;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private async System.Threading.Tasks.Task AddUserAsync()

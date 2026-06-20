@@ -106,11 +106,34 @@
                 <DataGrid Grid.Row="1" ItemsSource="{Binding UsersList}" SelectedItem="{Binding SelectedUser}" VerticalScrollBarVisibility="Hidden"
                           Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
                     <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Status" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding IpAddress}">
+                                        <Ellipse Width="12" Height="12" StrokeThickness="1">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="#BDC3C7"/>
+                                                    <Setter Property="Stroke" Value="#7F8C8D"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                            <Setter Property="Fill" Value="#2ECC71"/>
+                                                            <Setter Property="Stroke" Value="#27AE60"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
                         <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Full Name" Binding="{Binding Fullname}" Width="*" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Last Login" Binding="{Binding LastLogin, StringFormat={}{0:MM/dd/yy HH:mm}}" Width="*" IsReadOnly="True"/>
                         <DataGridTextColumn Header="Active Loc" Binding="{Binding ActiveLocator}" Width="*" IsReadOnly="True"/>
-                        <DataGridCheckBoxColumn Header="Is Login?" Binding="{Binding IsLogin, Mode=OneWay}" Width="*" IsReadOnly="True"/>
+                        <DataGridCheckBoxColumn Header="Session" Binding="{Binding IsLogin, Mode=OneWay}" Width="*" IsReadOnly="True"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

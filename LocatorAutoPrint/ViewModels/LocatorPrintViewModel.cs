@@ -3,6 +3,7 @@ using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -129,35 +130,67 @@ namespace LocatorAutoPrint.ViewModels
         {
             var locators = LocatorParser.Parse(LocatorInput);
             if (locators.Count == 0) return;
+            var errorLog = new List<string>();
+            int successCount = 0;
+            string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
 
             foreach (var locatorNo in locators)
             {
-                var status = await _dbService.CheckLocatorStatusAsync(locatorNo);
-                if (!status.Exists)
+                try
                 {
-                    CustomMessageBox.Show($"Locator Number: {locatorNo} does not exist in the database.", "Invalid Locator", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    continue;
+                    var status = await _dbService.CheckLocatorStatusAsync(locatorNo);
+                    if (!status.Exists)
+                    {
+                        errorLog.Add($"Locator {locatorNo}: Does not exist in database.");
+                        continue;
+                    }
+                    if (!status.IsClosed)
+                    {
+                        errorLog.Add($"Locator {locatorNo}: Currently OPEN.");
+                        continue;
+                    }
+
+                    var records = await _dbService.GetCountSheetDataAsync(locatorNo);
+
+                    if (records.Count == 0)
+                    {
+                        errorLog.Add($"Locator {locatorNo}: No count records found.");
+                        continue;
+                    }
+
+                    _printService.BackupToTextFile(locatorNo, records);
+                    await _printService.PrintLocatorSheetAsync(locatorNo, storeName, records);
+
+                    successCount++;
                 }
-                if (!status.IsClosed)
+                catch (Exception ex)
                 {
-                    CustomMessageBox.Show($"Locator {locatorNo} is currently OPEN (0).\n\nPlease ensure the device/locator is closed before printing.", "Locator Open", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    continue;
+                    errorLog.Add($"Locator {locatorNo}: ERROR - {ex.Message}");
                 }
-
-                string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
-                var records = await _dbService.GetCountSheetDataAsync(locatorNo);
-
-                if (records.Count == 0)
-                {
-                    CustomMessageBox.Show($"No count records found for Locator Number: {locatorNo}", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
-                    continue;
-                }
-
-                _printService.BackupToTextFile(locatorNo, records);
-                await _printService.PrintLocatorSheetAsync(locatorNo, storeName, records);
             }
 
             LocatorInput = string.Empty;
+
+            if (errorLog.Count > 0)
+            {
+                string summary = $"Print job completed with {errorLog.Count} issue(s). Successful prints: {successCount}\n\n";
+
+               
+                if (errorLog.Count > 15)
+                {
+                    summary += string.Join("\n", errorLog.GetRange(0, 15)) + $"\n...and {errorLog.Count - 15} more.";
+                }
+                else
+                {
+                    summary += string.Join("\n", errorLog);
+                }
+
+                CustomMessageBox.Show(summary, "Print Job Summary", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else if (successCount > 0)
+            {
+                CustomMessageBox.Show($"Successfully queued {successCount} locator(s) for printing.", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private void ShowAppInfo()
@@ -167,6 +200,7 @@ namespace LocatorAutoPrint.ViewModels
                 "v1.0\n• Initial release\n\n" +
                 "v2.1\n• Added auto-refresh for real-time progress tracking\n• Added location-based progress cards\n• Added remaining locators counter\n\n" +
                 "v3.0\n• Complete system modernization\n• Added Edit Count Sheet module\n• Added comprehensive Reports (INF PDF Export, SKU Search, Stock Value, Summary)\n• Added User Management & Session Tracking\n• Added Locator Maintenance & Database Restore features\n• Live database connection monitoring\n\n" +
+                "v3.1\n• Corrected percentage accuracy\n• Fixed Enter key behavior for printing locators\n• Fixed masterfile lookups when editing locators\n• Added batch print validation and error logging\n• Added status column on users tab that pings the device IP\n\n" +
                 "Developed by Jake Panlilio - IT SF1 (722)\nZone 11 © 2026",
                 "About");
         }

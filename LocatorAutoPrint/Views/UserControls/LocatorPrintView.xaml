@@ -50,9 +50,7 @@
                 <TextBox Grid.Column="1" 
                          Text="{Binding LocatorInput, UpdateSourceTrigger=PropertyChanged}" 
                          Style="{StaticResource ModernTextBox}" 
-                         AcceptsReturn="True" 
-                         VerticalScrollBarVisibility="Auto"
-                         Height="48"
+                         Height="30"
                          VerticalAlignment="Center"/>
             </Grid>
         </Border>

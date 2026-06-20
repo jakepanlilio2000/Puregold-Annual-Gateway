@@ -60,7 +60,7 @@
                 <TextBox Grid.Column="1" Text="{Binding SearchLocator, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Height="28"/>
 
                 <TextBlock Grid.Column="2" Text="Record No:" VerticalAlignment="Center" Margin="16,0,8,0" Style="{StaticResource Text.Body}"/>
-                <TextBox Grid.Column="3" Text="{Binding SearchRecNo, UpdateSourceTrigger=PropertyChanged, Delay=400}" Style="{StaticResource ModernTextBox}" Height="28"/>
+                <TextBox Grid.Column="3" Text="{Binding SearchRecNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Height="28"/>
 
                 <Button Grid.Column="5" Command="{Binding PrintEditedCommand}" Style="{StaticResource SecondaryActionButton}" Padding="10,6">
                     <StackPanel Orientation="Horizontal">

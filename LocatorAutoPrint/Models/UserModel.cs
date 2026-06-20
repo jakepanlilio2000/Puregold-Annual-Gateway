@@ -12,6 +12,7 @@ namespace LocatorAutoPrint.Models
         private DateTime? _lastLogin;
         private DateTime? _lastLogout;
         private string _ipAddress;
+        private bool _isOnline;
 
         public string Username { get => _username; set { _username = value; OnPropertyChanged(); } }
         public string Password { get => _password; set { _password = value; OnPropertyChanged(); } }
@@ -22,5 +23,10 @@ namespace LocatorAutoPrint.Models
         public string IpAddress { get => _ipAddress; set { _ipAddress = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsLogin)); } }
 
         public bool IsLogin => !string.IsNullOrEmpty(IpAddress);
+        public bool IsOnline
+        {
+            get => _isOnline;
+            set { _isOnline = value; OnPropertyChanged(); }
+        }
     }
 }

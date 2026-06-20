@@ -69,18 +69,33 @@ namespace LocatorAutoPrint.Services
                                 double cancel = reader["CancelledBays"] != DBNull.Value ? Convert.ToDouble(reader["CancelledBays"]) : 0;
                                 double total = reader["TotalBays"] != DBNull.Value ? Convert.ToDouble(reader["TotalBays"]) : 0;
 
-                                if (stockloc.Contains("top load") || stockloc.Contains("buffer"))
+                                if (loc.Contains("selling"))
                                 {
-                                    stats.Buffer.Comp += comp; stats.Buffer.Cancel += cancel; stats.Buffer.Total += total;
+                                    if (stockloc.Contains("buffer") || stockloc.Contains("topload") || stockloc.Contains("top load"))
+                                    {
+                                        stats.Buffer.Comp += comp;
+                                        stats.Buffer.Cancel += cancel;
+                                        stats.Buffer.Total += total;
+                                    }
+                                    else
+                                    {
+                                        stats.Selling.Comp += comp;
+                                        stats.Selling.Cancel += cancel;
+                                        stats.Selling.Total += total;
+                                    }
                                 }
-                                else if (loc.Contains("warehouse") || loc.Contains("receiving"))
+                              
+                                else if (loc.Contains("warehouse") || loc.Contains("receiving") || stockloc.Contains("receiving"))
                                 {
-                                    stats.Warehouse.Comp += comp; stats.Warehouse.Cancel += cancel; stats.Warehouse.Total += total;
+                                    stats.Warehouse.Comp += comp;
+                                    stats.Warehouse.Cancel += cancel;
+                                    stats.Warehouse.Total += total;
                                 }
-                                else if (loc.Contains("selling"))
-                                {
-                                    stats.Selling.Comp += comp; stats.Selling.Cancel += cancel; stats.Selling.Total += total;
-                                }
+
+                               
+                                stats.Overall.Comp += comp;
+                                stats.Overall.Cancel += cancel;
+                                stats.Overall.Total += total;
                             }
                         }
                     }
@@ -92,10 +107,6 @@ namespace LocatorAutoPrint.Services
             }
 
             double Calc(double c, double cx, double t) => (t - cx) <= 0 ? 0 : (c / (t - cx)) * 100;
-
-            stats.Overall.Comp = stats.Selling.Comp + stats.Warehouse.Comp + stats.Buffer.Comp;
-            stats.Overall.Cancel = stats.Selling.Cancel + stats.Warehouse.Cancel + stats.Buffer.Cancel;
-            stats.Overall.Total = stats.Selling.Total + stats.Warehouse.Total + stats.Buffer.Total;
 
             stats.Overall.Pct = Calc(stats.Overall.Comp, stats.Overall.Cancel, stats.Overall.Total);
             stats.Selling.Pct = Calc(stats.Selling.Comp, stats.Selling.Cancel, stats.Selling.Total);
