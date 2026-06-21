@@ -20,6 +20,18 @@ namespace LocatorAutoPrint.ViewModels
         private readonly DispatcherTimer _timer;
         private bool _hasShownProgressError = false;
 
+        private bool _isPrinting;
+        public bool IsPrinting
+        {
+            get => _isPrinting;
+            set
+            {
+                _isPrinting = value;
+                OnPropertyChanged();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+
         private string _locatorInput;
         public string LocatorInput
         {
@@ -58,6 +70,7 @@ namespace LocatorAutoPrint.ViewModels
             _maintenanceVM = maintenanceVM;
             _restoreService = restoreService;
 
+            PrintCommand = new RelayCommand(async _ => await ExecutePrintAsync(), _ => !IsPrinting);
             RefreshCommand = new RelayCommand(async _ => await LoadStatsAsync());
             PrintCommand = new RelayCommand(async _ => await ExecutePrintAsync());
             CloseCommand = new RelayCommand(_ => Application.Current.Shutdown());
@@ -128,68 +141,68 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task ExecutePrintAsync()
         {
-            var locators = LocatorParser.Parse(LocatorInput);
-            if (locators.Count == 0) return;
-            var errorLog = new List<string>();
-            int successCount = 0;
-            string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
+            if (IsPrinting) return;
+            IsPrinting = true;
 
-            foreach (var locatorNo in locators)
+            try
             {
-                try
+                var locators = LocatorParser.Parse(LocatorInput);
+                if (locators.Count == 0) return;
+
+                var errorLog = new List<string>();
+                int successCount = 0;
+
+                string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
+
+                foreach (var locatorNo in locators)
                 {
-                    var status = await _dbService.CheckLocatorStatusAsync(locatorNo);
-                    if (!status.Exists)
+                    try
                     {
-                        errorLog.Add($"Locator {locatorNo}: Does not exist in database.");
-                        continue;
+                        var status = await _dbService.CheckLocatorStatusAsync(locatorNo);
+                        if (!status.Exists)
+                        {
+                            errorLog.Add($"Locator {locatorNo}: Does not exist in database.");
+                            continue;
+                        }
+                        if (!status.IsClosed)
+                        {
+                            errorLog.Add($"Locator {locatorNo}: Currently OPEN.");
+                            continue;
+                        }
+
+                        var records = await _dbService.GetCountSheetDataAsync(locatorNo);
+
+                        if (records.Count == 0)
+                        {
+                            errorLog.Add($"Locator {locatorNo}: No count records found.");
+                            continue;
+                        }
+
+                        _printService.BackupToTextFile(locatorNo, records);
+                        await _printService.PrintLocatorSheetAsync(locatorNo, storeName, records);
+
+                        successCount++;
                     }
-                    if (!status.IsClosed)
+                    catch (Exception ex)
                     {
-                        errorLog.Add($"Locator {locatorNo}: Currently OPEN.");
-                        continue;
+                        errorLog.Add($"Locator {locatorNo}: ERROR - {ex.Message}");
                     }
-
-                    var records = await _dbService.GetCountSheetDataAsync(locatorNo);
-
-                    if (records.Count == 0)
-                    {
-                        errorLog.Add($"Locator {locatorNo}: No count records found.");
-                        continue;
-                    }
-
-                    _printService.BackupToTextFile(locatorNo, records);
-                    await _printService.PrintLocatorSheetAsync(locatorNo, storeName, records);
-
-                    successCount++;
                 }
-                catch (Exception ex)
+
+                LocatorInput = string.Empty;
+
+                if (errorLog.Count > 0)
                 {
-                    errorLog.Add($"Locator {locatorNo}: ERROR - {ex.Message}");
+                    string summary = $"Print job completed with {errorLog.Count} issue(s). Successful prints: {successCount}\n\n";
+                    if (errorLog.Count > 15) summary += string.Join("\n", errorLog.GetRange(0, 15)) + $"\n...and {errorLog.Count - 15} more.";
+                    else summary += string.Join("\n", errorLog);
+
+                    CustomMessageBox.Show(summary, "Print Job Issues", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
-
-            LocatorInput = string.Empty;
-
-            if (errorLog.Count > 0)
+            finally
             {
-                string summary = $"Print job completed with {errorLog.Count} issue(s). Successful prints: {successCount}\n\n";
-
-               
-                if (errorLog.Count > 15)
-                {
-                    summary += string.Join("\n", errorLog.GetRange(0, 15)) + $"\n...and {errorLog.Count - 15} more.";
-                }
-                else
-                {
-                    summary += string.Join("\n", errorLog);
-                }
-
-                CustomMessageBox.Show(summary, "Print Job Summary", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            else if (successCount > 0)
-            {
-                CustomMessageBox.Show($"Successfully queued {successCount} locator(s) for printing.", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                IsPrinting = false;
             }
         }
 

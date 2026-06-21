@@ -49,6 +49,51 @@ namespace LocatorAutoPrint.Services
             }
             return null;
         }
+
+        // Add these inside EditCountSheetService class:
+
+        public async Task<int> GetNextRecordNumberAsync(string slotNo)
+        {
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    // Gets the highest RecNo and adds 1. Defaults to 1 if no records exist.
+                    cmd.CommandText = "SELECT ISNULL(MAX(RecNo), 0) + 1 FROM PUREGOLD.dbo.COUNTSHEET WHERE SlotNo = @slotNo";
+                    cmd.Parameters.AddWithValue("@slotNo", slotNo);
+                    var result = await cmd.ExecuteScalarAsync();
+                    return Convert.ToInt32(result);
+                }
+            }
+        }
+
+        public async Task<bool> InsertRecordAsync(CountSheetEditModel record)
+        {
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                INSERT INTO PUREGOLD.dbo.COUNTSHEET 
+                (SlotNo, RecNo, UPC, SKU, Descr, Qty, EditedQty, Edited, Added, CountDate)
+                VALUES 
+                (@slotNo, @recNo, @upc, @sku, @descr, @qty, @editedQty, 1, 1, GETDATE())";
+
+                    cmd.Parameters.AddWithValue("@slotNo", record.SlotNo);
+                    cmd.Parameters.AddWithValue("@recNo", record.RecNo);
+                    cmd.Parameters.AddWithValue("@upc", record.UPC ?? "");
+                    cmd.Parameters.AddWithValue("@sku", record.SKU ?? "");
+                    cmd.Parameters.AddWithValue("@descr", record.Descr ?? "");
+                    cmd.Parameters.AddWithValue("@qty", 0);
+                    cmd.Parameters.AddWithValue("@editedQty", record.EditedQty);
+
+                    int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                    return rowsAffected > 0;
+                }
+            }
+        }
         public async Task<List<ItemLookupResult>> SearchItemAsync(string keyword)
         {
             var results = new List<ItemLookupResult>();

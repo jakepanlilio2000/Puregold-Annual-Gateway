@@ -24,5 +24,16 @@ namespace LocatorAutoPrint.Views.UserControls
         {
             InitializeComponent();
         }
+
+        private void AutoSearch_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.EditCountSheetViewModel vm)
+            {
+                if (vm.SearchItemCommand.CanExecute("Auto"))
+                {
+                    vm.SearchItemCommand.Execute("Auto");
+                }
+            }
+        }
     }
 }

@@ -6,23 +6,20 @@
              VerticalAlignment="Stretch" 
              Background="{StaticResource Brush.LightGray}">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
     <Grid Margin="16,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Top Actions -->
             <RowDefinition Height="Auto"/>
-            <!-- Input Section -->
             <RowDefinition Height="Auto"/>
-            <!-- Stats Header -->
             <RowDefinition Height="160"/>
-            <!-- Stats Cards -->
             <RowDefinition Height="Auto"/>
-            <!-- Primary Actions -->
             <RowDefinition Height="Auto"/>
-            <!-- Secondary Actions -->
         </Grid.RowDefinitions>
 
-        <!-- TOP RIGHT UTILITY BUTTONS -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
             <Button Command="{Binding ShowGuideCommand}" Style="{StaticResource SecondaryActionButton}" Padding="8,4" Margin="0,0,6,0" ToolTip="User Guide">
                 <fa:IconBlock Icon="CircleQuestion" FontSize="12"/>
@@ -35,7 +32,6 @@
             </Button>
         </StackPanel>
 
-        <!-- INPUT SECTION -->
         <Border Grid.Row="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -49,17 +45,15 @@
 
                 <TextBox Grid.Column="1" 
                          Text="{Binding LocatorInput, UpdateSourceTrigger=PropertyChanged}" 
+                         IsEnabled="{Binding IsPrinting, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"
                          Style="{StaticResource ModernTextBox}" 
                          Height="30"
                          VerticalAlignment="Center"/>
             </Grid>
         </Border>
 
-        <!-- STATS HEADER -->
         <TextBlock Grid.Row="2" Text="Live Progress Report" Style="{StaticResource Text.Header}" Margin="0,0,0,8"/>
 
-        <!-- STATS CARDS (2x2 Grid) -->
-        <!-- STATS CARDS (2x2 Grid) -->
         <Grid Grid.Row="3" Margin="0,0,0,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -70,7 +64,6 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- OVERALL -->
             <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Margin="0,0,6,6" Padding="12">
                 <Grid>
                     <TextBlock Text="OVERALL" Style="{StaticResource Text.Header}" FontSize="11" VerticalAlignment="Top"/>
@@ -88,7 +81,6 @@
                 </Grid>
             </Border>
 
-            <!-- SELLING -->
             <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Margin="6,0,0,6" Padding="12">
                 <Grid>
                     <TextBlock Text="SELLING" Style="{StaticResource Text.Header}" FontSize="11" VerticalAlignment="Top"/>
@@ -106,7 +98,6 @@
                 </Grid>
             </Border>
 
-            <!-- WAREHOUSE -->
             <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Margin="0,0,6,0" Padding="12">
                 <Grid>
                     <TextBlock Text="WAREHOUSE" Style="{StaticResource Text.Header}" FontSize="11" VerticalAlignment="Top"/>
@@ -124,7 +115,6 @@
                 </Grid>
             </Border>
 
-            <!-- BUFFER -->
             <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Margin="6,0,0,0" Padding="12">
                 <Grid>
                     <TextBlock Text="BUFFER" Style="{StaticResource Text.Header}" FontSize="11" VerticalAlignment="Top"/>
@@ -143,7 +133,6 @@
             </Border>
         </Grid>
 
-        <!-- PRIMARY ACTIONS -->
         <Grid Grid.Row="4" Margin="0,0,0,8">
             <Button Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButton}" HorizontalAlignment="Left" Width="120">
                 <StackPanel Orientation="Horizontal">
@@ -168,7 +157,6 @@
             </StackPanel>
         </Grid>
 
-        <!-- SECONDARY ACTIONS -->
         <Border Grid.Row="5" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="6">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Command="{Binding OpenCountsheetListCommand}" Style="{StaticResource SecondaryActionButton}" Padding="10,4" Margin="0,0,6,0" FontSize="11">
@@ -191,5 +179,37 @@
                 </Button>
             </StackPanel>
         </Border>
+
+        <Border Grid.Row="0" Grid.RowSpan="6" 
+                Background="#B3FFFFFF" 
+                Panel.ZIndex="100" 
+                CornerRadius="6"
+                Visibility="{Binding IsPrinting, Converter={StaticResource BoolToVis}}">
+
+            <Border.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{x:Static ApplicationCommands.NotACommand}" />
+            </Border.InputBindings>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <fa:IconBlock Icon="CircleNotch" FontSize="48" Foreground="{StaticResource Brush.PrimaryBlue}" HorizontalAlignment="Center" Margin="0,0,0,16" RenderTransformOrigin="0.5,0.5">
+                    <fa:IconBlock.RenderTransform>
+                        <RotateTransform Angle="0" />
+                    </fa:IconBlock.RenderTransform>
+                    <fa:IconBlock.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" 
+                                     From="0" To="360" Duration="0:0:1.5" RepeatBehavior="Forever" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </fa:IconBlock.Triggers>
+                </fa:IconBlock>
+                <TextBlock Text="Printing Locators..." FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Brush.DarkBlue}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Please wait. Do not close the application." FontSize="12" Foreground="#7F8C8D" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
     </Grid>
 </UserControl>
