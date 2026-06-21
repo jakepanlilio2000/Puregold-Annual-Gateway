@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Windows.Input;
-using Microsoft.Win32; 
-using LocatorAutoPrint.Commands;
+﻿using LocatorAutoPrint.Commands;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
+using Microsoft.Win32; 
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 namespace LocatorAutoPrint.ViewModels
 {
@@ -14,11 +16,14 @@ namespace LocatorAutoPrint.ViewModels
         private readonly ReportsService _reportsService;
         private readonly PdfExportService _pdfService;
         private readonly StockValueService _stockService;
-        public ObservableCollection<InfReportModel> InfRecords { get; } = new ObservableCollection<InfReportModel>();
+        private ObservableCollection<InfReportModel> _infRecords = new ObservableCollection<InfReportModel>();
+        public ObservableCollection<InfReportModel> InfRecords { get => _infRecords; set { _infRecords = value; OnPropertyChanged(); } }
+
         private bool _infLoaded;
         public bool HasNoInfRecords => _infLoaded && InfRecords.Count == 0;
         public bool HasInfRecords => InfRecords.Count > 0;
-        public ObservableCollection<StockValueModel> StockValues { get; } = new ObservableCollection<StockValueModel>();
+        private ObservableCollection<StockValueModel> _stockValues = new ObservableCollection<StockValueModel>();
+        public ObservableCollection<StockValueModel> StockValues { get => _stockValues; set { _stockValues = value; OnPropertyChanged(); } }
         private bool _stockLoaded;
         public bool HasNoStockData => _stockLoaded && StockValues.Count == 0;
 
@@ -26,17 +31,23 @@ namespace LocatorAutoPrint.ViewModels
         public ICommand LoadInfCommand { get; }
         public ICommand ExportInfToPdfCommand { get; }
 
-        public ObservableCollection<ItemLookupResult> SkuResults { get; } = new ObservableCollection<ItemLookupResult>();
+        private ObservableCollection<ItemLookupResult> _skuResults = new ObservableCollection<ItemLookupResult>();
+        public ObservableCollection<ItemLookupResult> SkuResults { get => _skuResults; set { _skuResults = value; OnPropertyChanged(); } }
         private string _skuSearchQuery;
         public string SkuSearchQuery { get => _skuSearchQuery; set { _skuSearchQuery = value; OnPropertyChanged(); } }
         public bool HasNoSkuResults => SkuResults.Count == 0;
+
+        private ItemLookupResult _selectedSkuResult;
+        public ItemLookupResult SelectedSkuResult { get => _selectedSkuResult; set { _selectedSkuResult = value; OnPropertyChanged(); } }
+        public ICommand AddToMasterfileCommand { get; }
         public ICommand SearchSkuCommand { get; }
         public ICommand CopyUpcCommand { get; }
         public ICommand CopySkuCommand { get; }
         public ICommand CopyDescriptionCommand { get; }
         public ICommand CopyAllColumnsCommand { get; }
 
-        public ObservableCollection<SummaryReportModel> SummaryRecords { get; } = new ObservableCollection<SummaryReportModel>();
+        private ObservableCollection<SummaryReportModel> _summaryRecords = new ObservableCollection<SummaryReportModel>();
+        public ObservableCollection<SummaryReportModel> SummaryRecords { get => _summaryRecords; set { _summaryRecords = value; OnPropertyChanged(); } }
         public ICommand LoadSummaryCommand { get; }
         private MonitoringKpiModel _monitoringKpis;
         public MonitoringKpiModel MonitoringKpis { get => _monitoringKpis; set { _monitoringKpis = value; OnPropertyChanged(); } }
@@ -62,37 +73,29 @@ namespace LocatorAutoPrint.ViewModels
 
             LoadInfCommand = new RelayCommand(async _ => await LoadInfRecordsAsync());
             ExportInfToPdfCommand = new RelayCommand(_ => ExportInfToPdf(), _ => HasInfRecords);
-
-            SearchSkuCommand = new RelayCommand(async _ => await ExecuteSkuSearchAsync(), _ => !string.IsNullOrWhiteSpace(SkuSearchQuery));
             LoadSummaryCommand = new RelayCommand(async _ => await LoadSummaryAsync());
             LoadMonitoringCommand = new RelayCommand(async _ => await LoadMonitoringAsync());
             LoadStockCommand = new RelayCommand(async _ => await LoadStockAsync());
-            CopyUpcCommand = new RelayCommand(_ => CopyToClipboard("UPC"), _ => SkuResults.Count > 0 && SkuResults.FirstOrDefault() != null);
-            CopySkuCommand = new RelayCommand(_ => CopyToClipboard("SKU"), _ => SkuResults.Count > 0);
-            CopyDescriptionCommand = new RelayCommand(_ => CopyToClipboard("Description"), _ => SkuResults.Count > 0);
-            CopyAllColumnsCommand = new RelayCommand(_ => CopyAllToClipboard(), _ => SkuResults.Count > 0);
+            SearchSkuCommand = new RelayCommand(async _ => await ExecuteSkuSearchAsync(), _ => !string.IsNullOrWhiteSpace(SkuSearchQuery));
+            AddToMasterfileCommand = new RelayCommand(async _ => await AddToMasterfileAsync(), _ => SelectedSkuResult != null);
+            CopyUpcCommand = new RelayCommand(_ => CopyToClipboard("UPC"), _ => SelectedSkuResult != null);
+            CopySkuCommand = new RelayCommand(_ => CopyToClipboard("SKU"), _ => SelectedSkuResult != null);
+            CopyDescriptionCommand = new RelayCommand(_ => CopyToClipboard("Description"), _ => SelectedSkuResult != null);
+            CopyAllColumnsCommand = new RelayCommand(_ => CopyAllToClipboard(), _ => SelectedSkuResult != null);
         }
 
         private void CopyToClipboard(string fieldName)
         {
-            if (SkuResults.Count == 0) return;
-
-            var item = SkuResults.FirstOrDefault();
+            var item = SelectedSkuResult;
             if (item == null) return;
 
             string textToCopy = string.Empty;
 
             switch (fieldName.ToLower())
             {
-                case "upc":
-                    textToCopy = item.UPC;
-                    break;
-                case "sku":
-                    textToCopy = item.SKU;
-                    break;
-                case "description":
-                    textToCopy = item.Description;
-                    break;
+                case "upc": textToCopy = item.UPC; break;
+                case "sku": textToCopy = item.SKU; break;
+                case "description": textToCopy = item.Description; break;
             }
 
             if (!string.IsNullOrEmpty(textToCopy))
@@ -102,11 +105,30 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
+        private async Task AddToMasterfileAsync()
+        {
+            IsLoading = true;
+            try
+            {
+                var result = await _reportsService.AddToMasterfileAsync(SelectedSkuResult);
+
+                if (result.Success)
+                {
+                    ShowCopyFeedbackMessage(result.Message);
+                }
+                else
+                {
+                    MessageBox.Show(result.Message, "Notice", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
         private void CopyAllToClipboard()
         {
-            if (SkuResults.Count == 0) return;
-
-            var item = SkuResults.FirstOrDefault();
+            var item = SelectedSkuResult;
             if (item == null) return;
 
             string allData = $"UPC: {item.UPC}\nSKU: {item.SKU}\nDescription: {item.Description}";
@@ -134,23 +156,20 @@ namespace LocatorAutoPrint.ViewModels
             get => _copyFeedbackMessage;
             set { _copyFeedbackMessage = value; OnPropertyChanged(); }
         }
-        
 
-        private async System.Threading.Tasks.Task LoadStockAsync()
+
+        private async Task LoadStockAsync()
         {
             IsLoading = true;
             try
             {
-                StockValues.Clear();
                 var results = await _stockService.GetStockValuesAsync();
-                foreach (var r in results) StockValues.Add(r);
+                StockValues = new ObservableCollection<StockValueModel>(results); 
+
                 _stockLoaded = true;
                 OnPropertyChanged(nameof(HasNoStockData));
             }
-            finally
-            {
-                IsLoading = false; 
-            }
+            finally { IsLoading = false; }
         }
 
         private async System.Threading.Tasks.Task LoadInfRecordsAsync()
@@ -158,17 +177,14 @@ namespace LocatorAutoPrint.ViewModels
             IsLoading = true;
             try
             {
-                InfRecords.Clear();
                 var results = await _reportsService.GetInfRecordsAsync();
-                foreach (var r in results) InfRecords.Add(r);
+                InfRecords = new ObservableCollection<InfReportModel>(results);
+
                 _infLoaded = true;
                 OnPropertyChanged(nameof(HasNoInfRecords));
                 OnPropertyChanged(nameof(HasInfRecords));
             }
-            finally
-            {
-                IsLoading = false;
-            }
+            finally { IsLoading = false; }
         }
 
         private void ExportInfToPdf()
@@ -186,38 +202,31 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
-        private async System.Threading.Tasks.Task ExecuteSkuSearchAsync()
+        private async Task ExecuteSkuSearchAsync()
         {
             IsLoading = true;
             try
             {
-                SkuResults.Clear();
                 var results = await _reportsService.SearchSkuAsync(SkuSearchQuery);
-                foreach (var r in results) SkuResults.Add(r);
+                SkuResults = new ObservableCollection<ItemLookupResult>(results);
+
                 OnPropertyChanged(nameof(HasNoSkuResults));
             }
-            finally
-            {
-                IsLoading = false;
-            }
+            finally { IsLoading = false; }
         }
 
-        private async System.Threading.Tasks.Task LoadSummaryAsync()
+        private async Task LoadSummaryAsync()
         {
             IsLoading = true;
             try
             {
-                SummaryRecords.Clear();
                 var results = await _reportsService.GetSummaryReportAsync();
-                foreach (var r in results) SummaryRecords.Add(r);
+                SummaryRecords = new ObservableCollection<SummaryReportModel>(results); 
             }
-            finally
-            {
-                IsLoading = false;
-            }
+            finally { IsLoading = false; }
         }
 
-        private async System.Threading.Tasks.Task LoadMonitoringAsync()
+        private async Task LoadMonitoringAsync()
         {
             IsLoading = true;
             try

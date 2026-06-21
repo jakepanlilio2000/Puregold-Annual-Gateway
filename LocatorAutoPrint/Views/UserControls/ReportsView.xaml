@@ -89,11 +89,21 @@
 
                     <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" Style="{StaticResource ModernProgressBar}" Margin="0,0,0,8"/>
 
-                    <DataGrid Grid.Row="2" ItemsSource="{Binding SkuResults}" Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}"
-                  SelectionMode="Single" SelectionUnit="FullRow" IsReadOnly="True" AutoGenerateColumns="False"
-                  MouseDoubleClick="DataGrid_MouseDoubleClick">
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding SkuResults}" 
+          SelectedItem="{Binding SelectedSkuResult}" 
+          Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}"
+          SelectionMode="Single" SelectionUnit="FullRow" IsReadOnly="True" AutoGenerateColumns="False"
+          MouseDoubleClick="DataGrid_MouseDoubleClick">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
+
+                                <MenuItem Header="Add to Masterfile" Command="{Binding AddToMasterfileCommand}">
+                                    <MenuItem.Icon>
+                                        <fa:IconBlock Icon="Database" Foreground="#27AE60"/>
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <Separator/>
+
                                 <MenuItem Header="Copy UPC" Command="{Binding CopyUpcCommand}">
                                     <MenuItem.Icon>
                                         <fa:IconBlock Icon="Copy" Foreground="{StaticResource Brush.PrimaryBlue}"/>

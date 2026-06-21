@@ -214,7 +214,8 @@ namespace LocatorAutoPrint.ViewModels
                 "v2.1\n• Added auto-refresh for real-time progress tracking\n• Added location-based progress cards\n• Added remaining locators counter\n\n" +
                 "v3.0\n• Complete system modernization\n• Added Edit Count Sheet module\n• Added comprehensive Reports (INF PDF Export, SKU Search, Stock Value, Summary)\n• Added User Management & Session Tracking\n• Added Locator Maintenance & Database Restore features\n• Live database connection monitoring\n\n" +
                 "v3.1\n• Corrected percentage accuracy\n• Fixed Enter key behavior for printing locators\n• Fixed masterfile lookups when editing locators\n• Added batch print validation and error logging\n• Added status column on users tab that pings the device IP\n\n" +
-                "Developed by Jake Panlilio - IT SF1 (722)\nZone 11 © 2026",
+                "v3.2\n• Added UI loading overlay during print to prevent double printing\n• Removed unnecessary modals for streamlined UI\n• User creation now syncs with AGING_DB automatically\n• Added tabbed filters on Countsheet List (Active, Unused, Inactive)\n• Fixed random UI freezing by optimizing data loading\n• Added 'Add to Masterfile' option on SKU Inquiry context menu\n\n" +
+                "Developed by Jash (Jake Panlilio) - IT SF1 (722)\nZone 11 © 2026",
                 "About");
         }
     }

@@ -62,17 +62,75 @@
         </StackPanel>
 
         <!-- DATAGRID CARD -->
-        <Border Grid.Row="2" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" 
-                BorderThickness="1" CornerRadius="6" Padding="12">
-            <DataGrid ItemsSource="{Binding CountsheetList}" SelectedItem="{Binding SelectedCountsheetLocator}" 
-                      Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Locator (SlotNo)" Binding="{Binding SlotNo}" IsReadOnly="True" Width="120"/>
-                    <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" IsReadOnly="True" Width="80"/>
-                    <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                    <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
+        <TabControl Grid.Row="2" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" Margin="0,0,0,0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Padding" Value="15,8"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#34495E"/>
+                    <Setter Property="Background" Value="#F5F6F8"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Brush.PrimaryBlue}"/>
+                            <Setter Property="Background" Value="{StaticResource Brush.White}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
+
+            <TabItem Header="All Locators">
+                <DataGrid ItemsSource="{Binding AllLocatorsView}" SelectedItem="{Binding SelectedCountsheetLocator}" 
+                          Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Locator" Binding="{Binding SlotNo}" IsReadOnly="True" Width="80"/>
+                        <DataGridTextColumn Header="Location" Binding="{Binding Location}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" IsReadOnly="True" Width="70"/>
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="80"/>
+                        <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                        <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <TabItem Header="Active">
+                <DataGrid ItemsSource="{Binding ActiveLocatorsView}" SelectedItem="{Binding SelectedCountsheetLocator}" 
+                          Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Locator" Binding="{Binding SlotNo}" IsReadOnly="True" Width="80"/>
+                        <DataGridTextColumn Header="Location" Binding="{Binding Location}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" IsReadOnly="True" Width="70"/>
+                        <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                        <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <TabItem Header="Unused (0 Records)">
+                <DataGrid ItemsSource="{Binding UnusedLocatorsView}" SelectedItem="{Binding SelectedCountsheetLocator}" 
+                          Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Locator" Binding="{Binding SlotNo}" IsReadOnly="True" Width="80"/>
+                        <DataGridTextColumn Header="Location" Binding="{Binding Location}" IsReadOnly="True" Width="*"/>
+                        <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                        <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <TabItem Header="Inactive (Cancelled)">
+                <DataGrid ItemsSource="{Binding InactiveLocatorsView}" SelectedItem="{Binding SelectedCountsheetLocator}" 
+                          Style="{StaticResource ModernDataGrid}" ColumnHeaderStyle="{StaticResource ModernDataGridColumnHeader}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Locator" Binding="{Binding SlotNo}" IsReadOnly="True" Width="80"/>
+                        <DataGridTextColumn Header="Location" Binding="{Binding Location}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Records" Binding="{Binding RecordCount}" IsReadOnly="True" Width="70"/>
+                        <DataGridCheckBoxColumn Header="In Use" Binding="{Binding InUse, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                        <DataGridCheckBoxColumn Header="Closed" Binding="{Binding Closed, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </Window>

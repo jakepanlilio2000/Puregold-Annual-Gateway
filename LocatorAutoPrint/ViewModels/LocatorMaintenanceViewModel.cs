@@ -15,6 +15,11 @@ namespace LocatorAutoPrint.ViewModels
         private readonly LocatorMaintenanceService _service;
         private readonly ConfigService _configService;
 
+        public ICollectionView AllLocatorsView { get; private set; }
+        public ICollectionView ActiveLocatorsView { get; private set; }
+        public ICollectionView UnusedLocatorsView { get; private set; }
+        public ICollectionView InactiveLocatorsView { get; private set; }
+
         public ObservableCollection<LocatorListModel> CountsheetList { get; } = new ObservableCollection<LocatorListModel>();
         public ObservableCollection<PrelocModel> PrelocList { get; } = new ObservableCollection<PrelocModel>();
         public ObservableCollection<CountsheetDetailModel> SelectedLocatorDetails { get; } = new ObservableCollection<CountsheetDetailModel>();
@@ -30,7 +35,10 @@ namespace LocatorAutoPrint.ViewModels
             {
                 _searchLocatorQuery = value;
                 OnPropertyChanged();
-                CollectionViewSource.GetDefaultView(CountsheetList).Refresh();
+                AllLocatorsView?.Refresh();
+                ActiveLocatorsView?.Refresh();
+                UnusedLocatorsView?.Refresh();
+                InactiveLocatorsView?.Refresh();
             }
         }
         private string _newSlotNo;
@@ -78,13 +86,35 @@ namespace LocatorAutoPrint.ViewModels
                 CountsheetList.Add(item);
             }
 
-            var view = CollectionViewSource.GetDefaultView(CountsheetList);
-            view.Filter = obj =>
-            {
-                if (string.IsNullOrWhiteSpace(SearchLocatorQuery)) return true;
+            AllLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+            ActiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+            UnusedLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+            InactiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
 
+            AllLocatorsView.Filter = CreateFilter(null);
+            ActiveLocatorsView.Filter = CreateFilter("Active");
+            UnusedLocatorsView.Filter = CreateFilter("Unused");
+            InactiveLocatorsView.Filter = CreateFilter("Inactive");
+
+            OnPropertyChanged(nameof(AllLocatorsView));
+            OnPropertyChanged(nameof(ActiveLocatorsView));
+            OnPropertyChanged(nameof(UnusedLocatorsView));
+            OnPropertyChanged(nameof(InactiveLocatorsView));
+        }
+
+        private System.Predicate<object> CreateFilter(string targetStatus)
+        {
+            return obj =>
+            {
                 var loc = obj as LocatorListModel;
-                return loc != null && loc.SlotNo.Equals(SearchLocatorQuery.Trim(), System.StringComparison.OrdinalIgnoreCase);
+                if (loc == null) return false;
+                if (targetStatus != null && loc.Status != targetStatus) return false;
+                if (!string.IsNullOrWhiteSpace(SearchLocatorQuery))
+                {
+                    if (!loc.SlotNo.Equals(SearchLocatorQuery.Trim(), System.StringComparison.OrdinalIgnoreCase)) return false;
+                }
+
+                return true;
             };
         }
 

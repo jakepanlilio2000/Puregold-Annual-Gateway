@@ -90,7 +90,7 @@ namespace LocatorAutoPrint
             );
 
             var usersVM = new UsersViewModel(
-                userService
+                userService, configService
             );
 
             // ============================================================

@@ -198,5 +198,50 @@ namespace LocatorAutoPrint.Services
             }
             return results;
         }
+
+        // Add this method inside your ReportsService class
+
+        public async Task<(bool Success, string Message)> AddToMasterfileAsync(ItemLookupResult item)
+        {
+            try
+            {
+                using (var conn = new SqlConnection(_connectionString))
+                {
+                    await conn.OpenAsync();
+
+                    // 1. Check if the UPC already exists to prevent duplication/errors
+                    using (var checkCmd = conn.CreateCommand())
+                    {
+                        checkCmd.CommandText = "SELECT COUNT(1) FROM PUREGOLD.dbo.ITEMS WHERE UPC = @upc";
+                        checkCmd.Parameters.AddWithValue("@upc", item.UPC);
+                        int exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+
+                        if (exists > 0) return (false, "Item already exists in the Masterfile.");
+                    }
+
+                    // 2. Insert into the ITEMS table with the defaults
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"
+                    INSERT INTO PUREGOLD.dbo.ITEMS (UPC, SKU, Descr, Price, Type) 
+                    VALUES (@upc, @sku, @descr, @price, @type)";
+
+                        // Use ?? "" to safely handle nulls
+                        cmd.Parameters.AddWithValue("@upc", item.UPC ?? "");
+                        cmd.Parameters.AddWithValue("@sku", item.SKU ?? "");
+                        cmd.Parameters.AddWithValue("@descr", item.Description ?? "");
+                        cmd.Parameters.AddWithValue("@price", 1.0m); // Default to 1.0
+                        cmd.Parameters.AddWithValue("@type", "Standard Item"); // Default to Standard Item
+
+                        await cmd.ExecuteNonQueryAsync();
+                        return (true, "Successfully added to Masterfile!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Database error: {ex.Message}");
+            }
+        }
     }
 }

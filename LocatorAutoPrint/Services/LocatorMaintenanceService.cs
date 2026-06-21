@@ -24,12 +24,25 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
+                    // UPDATED: Joins PRELOC to get Location and calculates Status
                     cmd.CommandText = @"
-                        SELECT l.SlotNo, l.InUse, l.Closed, COUNT(c.RecNo) as RecordCount 
-                        FROM PUREGOLD.dbo.LOCATOR l
-                        LEFT JOIN PUREGOLD.dbo.COUNTSHEET c ON l.SlotNo = c.SlotNo
-                        GROUP BY l.SlotNo, l.InUse, l.Closed
-                        ORDER BY l.SlotNo";
+                SELECT 
+                    l.SlotNo, 
+                    COUNT(c.RecNo) AS RecordCount, 
+                    CAST(ISNULL(l.InUse, 0) AS BIT) AS InUse, 
+                    CAST(ISNULL(l.Closed, 0) AS BIT) AS Closed,
+                    ISNULL(p.Name, 'UNASSIGNED') AS Location,
+                    CASE 
+                        WHEN ISNULL(p.statusCancel, 0) = 1 THEN 'Inactive'
+                        WHEN COUNT(c.RecNo) = 0 THEN 'Unused'
+                        ELSE 'Active'
+                    END AS Status
+                FROM PUREGOLD.dbo.LOCATOR l
+                LEFT JOIN PUREGOLD.dbo.COUNTSHEET c ON l.SlotNo = c.SlotNo
+                LEFT JOIN PUREGOLD.dbo.PRELOC p ON l.SlotNo = p.SlotNo
+                GROUP BY l.SlotNo, l.InUse, l.Closed, p.Name, p.statusCancel
+                ORDER BY CAST(l.SlotNo AS INT) ASC";
+                    // Ensure sorting works logically if SlotNo is numeric
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -38,9 +51,11 @@ namespace LocatorAutoPrint.Services
                             list.Add(new LocatorListModel
                             {
                                 SlotNo = reader["SlotNo"].ToString(),
+                                RecordCount = Convert.ToInt32(reader["RecordCount"]),
                                 InUse = Convert.ToBoolean(reader["InUse"]),
                                 Closed = Convert.ToBoolean(reader["Closed"]),
-                                RecordCount = Convert.ToInt32(reader["RecordCount"])
+                                Location = reader["Location"].ToString(),
+                                Status = reader["Status"].ToString()
                             });
                         }
                     }

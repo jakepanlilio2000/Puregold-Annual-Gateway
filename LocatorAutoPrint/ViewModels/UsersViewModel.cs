@@ -13,8 +13,14 @@ namespace LocatorAutoPrint.ViewModels
     public class UsersViewModel : ViewModelBase
     {
         private readonly UserService _userService;
+        private readonly ConfigService _configService;
 
-        public ObservableCollection<UserModel> UsersList { get; } = new ObservableCollection<UserModel>();
+        private ObservableCollection<UserModel> _usersList = new ObservableCollection<UserModel>();
+        public ObservableCollection<UserModel> UsersList
+        {
+            get => _usersList;
+            set { _usersList = value; OnPropertyChanged(); }
+        }
 
         private string _firstName;
         public string FirstName { get => _firstName; set { _firstName = value; OnPropertyChanged(); } }
@@ -56,9 +62,11 @@ namespace LocatorAutoPrint.ViewModels
         public ICommand ClearFormCommand { get; }
         public ICommand LogoutMobileAppCommand { get; }
 
-        public UsersViewModel(UserService userService)
+        public UsersViewModel(UserService userService, ConfigService configService)
         {
             _userService = userService;
+            _configService = configService;
+
             LoadUsersCommand = new RelayCommand(async _ => await LoadUsersAsync());
             AddUserCommand = new RelayCommand(async _ => await AddUserAsync(), _ => CanSubmit());
             EditUserCommand = new RelayCommand(async _ => await EditUserAsync(), _ => CanSubmit() && SelectedUser != null);
@@ -72,22 +80,23 @@ namespace LocatorAutoPrint.ViewModels
             if (MessageBox.Show($"Force logout mobile app for user: {SelectedUser.Username}?", "Confirm Mobile Logout", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
                 await _userService.LogoutMobileAppAsync(SelectedUser.Username);
-                await LoadUsersAsync(); 
+                await LoadUsersAsync();
                 MessageBox.Show("User logged out from mobile app successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-
         }
+
         private bool CanSubmit() => !string.IsNullOrWhiteSpace(FirstName) && !string.IsNullOrWhiteSpace(LastName) && !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(RawPassword);
 
-        private async System.Threading.Tasks.Task LoadUsersAsync()
+        private async Task LoadUsersAsync()
         {
-            UsersList.Clear();
             var list = await _userService.GetUsersAsync();
-            foreach (var u in list) UsersList.Add(u);
+            UsersList = new ObservableCollection<UserModel>(list);
+
             var pingTasks = UsersList.Where(u => !string.IsNullOrWhiteSpace(u.IpAddress)).Select(async user =>
             {
                 user.IsOnline = await PingAddressAsync(user.IpAddress);
             });
+
             await Task.WhenAll(pingTasks);
         }
 
@@ -111,7 +120,8 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task AddUserAsync()
         {
-            await _userService.AddUserAsync(Username, RawPassword, FirstName, LastName);
+            string storeCode = _configService.Config.DefaultStoreNum; 
+            await _userService.AddUserAsync(Username, RawPassword, FirstName, LastName, storeCode);
             ClearForm();
             await LoadUsersAsync();
             MessageBox.Show("User Added Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -119,7 +129,8 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task EditUserAsync()
         {
-            await _userService.UpdateUserAsync(Username, RawPassword, FirstName, LastName);
+            string storeCode = _configService.Config.DefaultStoreNum; // Get Store Code
+            await _userService.UpdateUserAsync(Username, RawPassword, FirstName, LastName, storeCode);
             ClearForm();
             await LoadUsersAsync();
             MessageBox.Show("User Updated Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);

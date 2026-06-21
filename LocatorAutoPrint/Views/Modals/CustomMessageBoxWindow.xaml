@@ -12,7 +12,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- MESSAGE CONTENT CARD -->
         <Border Grid.Row="0" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" 
                 BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,12">
             <Grid>
@@ -21,21 +20,20 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- ICON AREA -->
                 <Border Grid.Column="0" Background="{StaticResource Brush.PrimaryBlue}" 
                         CornerRadius="4" Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Top">
                     <fa:IconBlock x:Name="MessageIcon" Icon="CircleInfo" Foreground="{StaticResource Brush.PrimaryYellow}" 
                                   FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
 
-                <!-- MESSAGE TEXT -->
-                <TextBlock x:Name="MessageTextBlock" Grid.Column="1" TextWrapping="Wrap" 
-                           Style="{StaticResource Text.Body}" FontSize="13" 
-                           VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" MaxHeight="350" Margin="0,0,0,0">
+                    <TextBlock x:Name="MessageTextBlock" TextWrapping="Wrap" 
+                               Style="{StaticResource Text.Body}" FontSize="13" 
+                               VerticalAlignment="Center" HorizontalAlignment="Left" Padding="0,0,8,0"/>
+                </ScrollViewer>
             </Grid>
         </Border>
 
-        <!-- BUTTONS -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="BtnYes" Width="90" Height="32" Margin="0,0,8,0" 
                     Click="BtnYes_Click" Visibility="Collapsed" Style="{StaticResource PrimaryActionButton}">
