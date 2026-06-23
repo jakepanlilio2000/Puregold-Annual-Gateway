@@ -5,6 +5,7 @@ using LocatorAutoPrint.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -20,12 +21,25 @@ namespace LocatorAutoPrint.ViewModels
         public ICollectionView UnusedLocatorsView { get; private set; }
         public ICollectionView InactiveLocatorsView { get; private set; }
 
+        public ObservableCollection<string> LocationsList { get; } = new ObservableCollection<string>();
         public ObservableCollection<LocatorListModel> CountsheetList { get; } = new ObservableCollection<LocatorListModel>();
         public ObservableCollection<PrelocModel> PrelocList { get; } = new ObservableCollection<PrelocModel>();
         public ObservableCollection<CountsheetDetailModel> SelectedLocatorDetails { get; } = new ObservableCollection<CountsheetDetailModel>();
 
         private LocatorListModel _selectedCountsheetLocator;
         public LocatorListModel SelectedCountsheetLocator { get => _selectedCountsheetLocator; set { _selectedCountsheetLocator = value; OnPropertyChanged(); } }
+
+        private string _selectedLocationFilter = "All Locations";
+        public string SelectedLocationFilter
+        {
+            get => _selectedLocationFilter;
+            set
+            {
+                _selectedLocationFilter = value;
+                OnPropertyChanged();
+                RefreshAllViews();
+            }
+        }
 
         private string _searchLocatorQuery;
         public string SearchLocatorQuery
@@ -74,12 +88,28 @@ namespace LocatorAutoPrint.ViewModels
             DeletePrelocCommand = new RelayCommand(async _ => await DeletePrelocAsync(), _ => SelectedPreloc != null);
         }
 
+        private void RefreshAllViews()
+        {
+            AllLocatorsView?.Refresh();
+            ActiveLocatorsView?.Refresh();
+            UnusedLocatorsView?.Refresh();
+            InactiveLocatorsView?.Refresh();
+        }
+
         private async System.Threading.Tasks.Task LoadCountsheetsAsync()
         {
             foreach (var item in CountsheetList) item.PropertyChanged -= LocatorListModel_PropertyChanged;
             CountsheetList.Clear();
 
             var list = await _service.GetLocatorListAsync();
+
+            var distinctLocations = list.Select(x => x.Location).Distinct().OrderBy(x => x).ToList();
+            LocationsList.Clear();
+            LocationsList.Add("All Locations");
+            foreach (var loc in distinctLocations) LocationsList.Add(loc);
+            _selectedLocationFilter = "All Locations"; 
+            OnPropertyChanged(nameof(SelectedLocationFilter));
+
             foreach (var item in list)
             {
                 item.PropertyChanged += LocatorListModel_PropertyChanged;
@@ -108,7 +138,17 @@ namespace LocatorAutoPrint.ViewModels
             {
                 var loc = obj as LocatorListModel;
                 if (loc == null) return false;
+
+                // 1. Tab Status
                 if (targetStatus != null && loc.Status != targetStatus) return false;
+
+                // 2. Location Dropdown
+                if (!string.IsNullOrEmpty(SelectedLocationFilter) && SelectedLocationFilter != "All Locations")
+                {
+                    if (loc.Location != SelectedLocationFilter) return false;
+                }
+
+                // 3. Search Box
                 if (!string.IsNullOrWhiteSpace(SearchLocatorQuery))
                 {
                     if (!loc.SlotNo.Equals(SearchLocatorQuery.Trim(), System.StringComparison.OrdinalIgnoreCase)) return false;

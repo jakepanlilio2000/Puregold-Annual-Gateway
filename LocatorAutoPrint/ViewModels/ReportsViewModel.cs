@@ -15,6 +15,7 @@ namespace LocatorAutoPrint.ViewModels
     {
         private readonly ReportsService _reportsService;
         private readonly PdfExportService _pdfService;
+        private readonly PrintService _printService;
         private readonly StockValueService _stockService;
         private ObservableCollection<InfReportModel> _infRecords = new ObservableCollection<InfReportModel>();
         public ObservableCollection<InfReportModel> InfRecords { get => _infRecords; set { _infRecords = value; OnPropertyChanged(); } }
@@ -30,7 +31,7 @@ namespace LocatorAutoPrint.ViewModels
         public ICommand LoadStockCommand { get; }
         public ICommand LoadInfCommand { get; }
         public ICommand ExportInfToPdfCommand { get; }
-
+        public ICommand PrintInfCommand { get; }
         private ObservableCollection<ItemLookupResult> _skuResults = new ObservableCollection<ItemLookupResult>();
         public ObservableCollection<ItemLookupResult> SkuResults { get => _skuResults; set { _skuResults = value; OnPropertyChanged(); } }
         private string _skuSearchQuery;
@@ -65,13 +66,15 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
-        public ReportsViewModel(ReportsService reportsService, PdfExportService pdfService, StockValueService stockService)
+        public ReportsViewModel(ReportsService reportsService, PdfExportService pdfService, StockValueService stockService, PrintService printService)
         {
             _reportsService = reportsService;
             _pdfService = pdfService;
             _stockService = stockService;
+            _printService = printService;
 
             LoadInfCommand = new RelayCommand(async _ => await LoadInfRecordsAsync());
+            PrintInfCommand = new RelayCommand(async _ => await PrintInfAsync(), _ => HasInfRecords);
             ExportInfToPdfCommand = new RelayCommand(_ => ExportInfToPdf(), _ => HasInfRecords);
             LoadSummaryCommand = new RelayCommand(async _ => await LoadSummaryAsync());
             LoadMonitoringCommand = new RelayCommand(async _ => await LoadMonitoringAsync());
@@ -82,6 +85,28 @@ namespace LocatorAutoPrint.ViewModels
             CopySkuCommand = new RelayCommand(_ => CopyToClipboard("SKU"), _ => SelectedSkuResult != null);
             CopyDescriptionCommand = new RelayCommand(_ => CopyToClipboard("Description"), _ => SelectedSkuResult != null);
             CopyAllColumnsCommand = new RelayCommand(_ => CopyAllToClipboard(), _ => SelectedSkuResult != null);
+        }
+
+        private async System.Threading.Tasks.Task PrintInfAsync()
+        {
+            IsLoading = true;
+            try
+            {
+                string tempFileName = $"INF_Report_{System.DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                string tempPdfPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFileName);
+                _pdfService.ExportInfReportToPdf(InfRecords.ToList(), tempPdfPath);
+                await _printService.PrintPdfFileAsync(tempPdfPath);
+
+                System.Windows.MessageBox.Show("INF Report (PDF Format) sent to printer successfully.", "Print Complete", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            }
+            catch (System.Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Failed to print: {ex.Message}\n\nMake sure you have a default PDF viewer installed.", "Print Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         private void CopyToClipboard(string fieldName)

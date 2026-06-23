@@ -86,7 +86,8 @@ namespace LocatorAutoPrint
             var reportsVM = new ReportsViewModel(
                 reportsService,
                 pdfService,
-                stockService
+                stockService,
+                printService
             );
 
             var usersVM = new UsersViewModel(

@@ -123,7 +123,96 @@ namespace LocatorAutoPrint.Services
             return new string(' ', spaces) + text;
         }
 
+        public async Task PrintPdfFileAsync(string filePath)
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = filePath,
+                    Verb = "Print",
+                    CreateNoWindow = true,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                };
 
+                System.Diagnostics.Process.Start(psi);
+
+                
+                await Task.Delay(5000);
+            }
+            finally
+            {
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(15000);
+                    try
+                    {
+                        if (System.IO.File.Exists(filePath))
+                            System.IO.File.Delete(filePath);
+                    }
+                    catch { /* Ignore if file is still locked by the PDF viewer */ }
+                });
+            }
+        }
+
+        public async Task PrintInfReportAsync(List<InfReportModel> records)
+        {
+            if (records == null || records.Count == 0) return;
+
+            var sb = new StringBuilder();
+            var now = DateTime.Now;
+
+            sb.AppendLine($"{now:hh:mm tt} {now:MM/dd/yyyy}");
+            sb.AppendLine(CenterText("***** ITEM NOT FOUND (INF) REPORT *****"));
+            sb.AppendLine("");
+            sb.AppendLine($"Total INF Records: {records.Count}");
+            sb.AppendLine("");
+            sb.AppendLine("Locator  Rec No  UPC             SKU     Description                              Qty");
+            sb.AppendLine("-------------------------------------------------------------------------------------");
+
+            foreach (var rec in records)
+            {
+                string colLoc = rec.SlotNo.PadRight(9);
+                string colRec = rec.RecNo.ToString().PadRight(8);
+                string colUpc = rec.UPC.PadRight(16);
+                string colSku = rec.SKU.PadRight(8);
+
+                string descr = rec.Descr.Length > 38 ? rec.Descr.Substring(0, 38) : rec.Descr;
+                string colDesc = descr.PadRight(41);
+
+                string colQty = rec.Qty.ToString();
+
+                sb.AppendLine($"{colLoc}{colRec}{colUpc}{colSku}{colDesc}{colQty}");
+            }
+
+            sb.AppendLine("-------------------------------------------------------------------------------------");
+            sb.AppendLine(CenterText("***** END OF REPORT *****"));
+
+            string tempPath = Path.Combine(Path.GetTempPath(), "INF_Report.txt");
+            File.WriteAllText(tempPath, sb.ToString(), Encoding.ASCII);
+
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = tempPath,
+                    Verb = "Print",
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+                Process.Start(psi);
+
+                await Task.Delay(3000);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    await Task.Delay(1000);
+                    try { File.Delete(tempPath); } catch { }
+                }
+            }
+        }
         public async Task PrintEditedLocatorSheetAsync(int locatorNo, string storeName, LocatorPrintSummary summary)
         {
             var sb = new StringBuilder();

@@ -61,83 +61,98 @@ namespace LocatorAutoPrint.Services
             }
         }
 
-        public async Task AddUserAsync(string username, string rawPassword, string firstName, string lastName, string storeCode)
+        // Replace your existing AddUserAsync and UpdateUserAsync methods with these:
+
+        public async Task AddUserAsync(string username, string rawPassword, string fullName, string storeCode)
         {
-            string fullName = $"{firstName.Trim()} {lastName.Trim()}";
-            string encodedPassword = EncodeBase64(rawPassword); 
+            // Automatically split the full name for AGING_DB
+            var nameParts = fullName.Trim().Split(new[] { ' ' }, 2);
+            string fName = nameParts[0];
+            string lName = nameParts.Length > 1 ? nameParts[1] : "";
+
+            string encodedPassword = EncodeBase64(rawPassword);
 
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
 
+                // 1. Insert into PUREGOLD
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "INSERT INTO PUREGOLD.dbo.tblUsers (username, password, fullname) VALUES (@user, @pass, @fname)";
                     cmd.Parameters.AddWithValue("@user", username);
                     cmd.Parameters.AddWithValue("@pass", encodedPassword);
-                    cmd.Parameters.AddWithValue("@fname", fullName);
+                    cmd.Parameters.AddWithValue("@fname", fullName.Trim());
                     await cmd.ExecuteNonQueryAsync();
                 }
 
+                // 2. Insert into AGING_DB
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        INSERT INTO AGING_DB.dbo.tblUsers 
-                        (uName, uPass, fName, lName, uLvl, strAcc, uStat, dept, uStr) 
-                        VALUES (@user, @pass, @fname, @lname, 'icg', @storeCode, 'A', 'ICD', @storeCode)";
+                INSERT INTO AGING_DB.dbo.tblUsers 
+                (uName, uPass, fName, lName, uLvl, strAcc, uStat, dept, uStr) 
+                VALUES (@user, @pass, @fName, @lName, 'icg', @storeCode, 'A', 'ICD', @storeCode)";
 
                     cmd.Parameters.AddWithValue("@user", username);
                     cmd.Parameters.AddWithValue("@pass", encodedPassword);
-                    cmd.Parameters.AddWithValue("@fname", firstName.Trim());
-                    cmd.Parameters.AddWithValue("@lname", lastName.Trim());
+                    cmd.Parameters.AddWithValue("@fName", fName);
+                    cmd.Parameters.AddWithValue("@lName", lName);
                     cmd.Parameters.AddWithValue("@storeCode", storeCode);
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
         }
 
-        public async Task UpdateUserAsync(string username, string rawPassword, string firstName, string lastName, string storeCode)
+        public async Task UpdateUserAsync(string username, string rawPassword, string fullName, string storeCode)
         {
-            string fullName = $"{firstName.Trim()} {lastName.Trim()}";
-            string encodedPassword = EncodeBase64(rawPassword); // Encode once
+            var nameParts = fullName.Trim().Split(new[] { ' ' }, 2);
+            string fName = nameParts[0];
+            string lName = nameParts.Length > 1 ? nameParts[1] : "";
+
+            string encodedPassword = EncodeBase64(rawPassword);
 
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
 
+                // 1. Update PUREGOLD
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "UPDATE PUREGOLD.dbo.tblUsers SET password = @pass, fullname = @fname WHERE username = @user";
                     cmd.Parameters.AddWithValue("@user", username);
                     cmd.Parameters.AddWithValue("@pass", encodedPassword);
-                    cmd.Parameters.AddWithValue("@fname", fullName);
+                    cmd.Parameters.AddWithValue("@fname", fullName.Trim());
                     await cmd.ExecuteNonQueryAsync();
                 }
+
+                // 2. Update AGING_DB
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        IF EXISTS (SELECT 1 FROM AGING_DB.dbo.tblUsers WHERE uName = @user)
-                        BEGIN
-                            UPDATE AGING_DB.dbo.tblUsers 
-                            SET uPass = @pass, fName = @fname, lName = @lname 
-                            WHERE uName = @user
-                        END
-                        ELSE
-                        BEGIN
-                            INSERT INTO AGING_DB.dbo.tblUsers 
-                            (uName, uPass, fName, lName, uLvl, strAcc, uStat, dept, uStr) 
-                            VALUES (@user, @pass, @fname, @lname, 'icg', @storeCode, 'A', 'ICD', @storeCode)
-                        END";
+                IF EXISTS (SELECT 1 FROM AGING_DB.dbo.tblUsers WHERE uName = @user)
+                BEGIN
+                    UPDATE AGING_DB.dbo.tblUsers 
+                    SET uPass = @pass, fName = @fName, lName = @lName 
+                    WHERE uName = @user
+                END
+                ELSE
+                BEGIN
+                    INSERT INTO AGING_DB.dbo.tblUsers 
+                    (uName, uPass, fName, lName, uLvl, strAcc, uStat, dept, uStr) 
+                    VALUES (@user, @pass, @fName, @lName, 'icg', @storeCode, 'A', 'ICD', @storeCode)
+                END";
 
                     cmd.Parameters.AddWithValue("@user", username);
                     cmd.Parameters.AddWithValue("@pass", encodedPassword);
-                    cmd.Parameters.AddWithValue("@fname", firstName.Trim());
-                    cmd.Parameters.AddWithValue("@lname", lastName.Trim());
+                    cmd.Parameters.AddWithValue("@fName", fName);
+                    cmd.Parameters.AddWithValue("@lName", lName);
                     cmd.Parameters.AddWithValue("@storeCode", storeCode);
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
         }
+
 
         public async Task DeleteUserAsync(string username)
         {

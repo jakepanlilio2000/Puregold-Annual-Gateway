@@ -11,6 +11,8 @@ namespace LocatorAutoPrint.Services
     {
         private readonly string _connectionString;
         private readonly string _appBaseDir;
+        bool hasStockLocation = false;
+
 
         public DatabaseService(string connectionString, string appBaseDir)
         {
@@ -35,28 +37,28 @@ namespace LocatorAutoPrint.Services
                         hasStockLocation = (result != null);
                     }
                     string locationColumnLogic = hasStockLocation
-                        ? "ISNULL(NULLIF(LTRIM(RTRIM(pre.stocklocation)), ''), pre.bayname)"
-                        : "pre.bayname";
+                    ? "ISNULL(NULLIF(LTRIM(RTRIM(pre.stocklocation)), ''), pre.bayname)"
+                    : "pre.bayname";
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = $@"
-                    SELECT 
-                        pre.Name AS Location,
-                        {locationColumnLogic} AS stocklocation,
-                        SUM(CASE 
-                                WHEN ISNULL(pre.statusCancel, 0) <> 1 
-                                 AND ISNULL(loc.InUse, 0) <> 1 
-                                 AND ISNULL(loc.Closed, 0) = 1 
-                                THEN 1 ELSE 0 
-                            END) AS CompletedBays,
-                        SUM(CASE WHEN ISNULL(pre.statusCancel, 0) = 1 THEN 1 ELSE 0 END) AS CancelledBays,
-                        COUNT(pre.SlotNo) AS TotalBays
-                    FROM PUREGOLD.dbo.PRELOC pre
-                    LEFT JOIN PUREGOLD.dbo.LOCATOR loc 
-                        ON loc.SlotNo = pre.SlotNo
-                    GROUP BY 
-                        pre.Name, 
-                        {locationColumnLogic}";
+                            SELECT 
+                                pre.Name AS Location,
+                                {locationColumnLogic} AS stocklocation,
+                                SUM(CASE 
+                                        WHEN ISNULL(pre.statusCancel, 0) <> 1 
+                                         AND ISNULL(loc.InUse, 0) <> 1 
+                                         AND ISNULL(loc.Closed, 0) = 1 
+                                        THEN 1 ELSE 0 
+                                    END) AS CompletedBays,
+                                SUM(CASE WHEN ISNULL(pre.statusCancel, 0) = 1 THEN 1 ELSE 0 END) AS CancelledBays,
+                                COUNT(pre.SlotNo) AS TotalBays
+                            FROM PUREGOLD.dbo.PRELOC pre
+                            LEFT JOIN PUREGOLD.dbo.LOCATOR loc 
+                                ON loc.SlotNo = pre.SlotNo
+                            GROUP BY 
+                                pre.Name, 
+                                {locationColumnLogic}";
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {

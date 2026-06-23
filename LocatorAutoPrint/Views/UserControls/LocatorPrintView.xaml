@@ -17,7 +17,6 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="160"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
@@ -32,29 +31,44 @@
             </Button>
         </StackPanel>
 
-        <Border Grid.Row="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+        <Border Grid.Row="1" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,16">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                    <TextBlock Text="Enter Locator Number(s)" Style="{StaticResource Text.Header}" FontSize="12"/>
-                </StackPanel>
+                <TextBlock Grid.Column="0" Text="Enter Locator Number(s):" Style="{StaticResource Text.Header}" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                 <TextBox Grid.Column="1" 
                          Text="{Binding LocatorInput, UpdateSourceTrigger=PropertyChanged}" 
                          IsEnabled="{Binding IsPrinting, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"
                          Style="{StaticResource ModernTextBox}" 
-                         Height="30"
-                         VerticalAlignment="Center"/>
+                         Height="32"
+                         VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                <Button Grid.Column="2" Command="{Binding PrintCommand}" Style="{StaticResource PrimaryActionButton}" Width="110" Height="32" IsDefault="True">
+                    <StackPanel Orientation="Horizontal">
+                        <fa:IconBlock Icon="Print" FontSize="11" Margin="0,0,6,0"/>
+                        <TextBlock Text="Print"/>
+                    </StackPanel>
+                </Button>
             </Grid>
         </Border>
 
-        <TextBlock Grid.Row="2" Text="Live Progress Report" Style="{StaticResource Text.Header}" Margin="0,0,0,8"/>
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="Live Progress Report" Style="{StaticResource Text.Header}" VerticalAlignment="Center"/>
 
-        <Grid Grid.Row="3" Margin="0,0,0,8">
+            <Button Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButton}" HorizontalAlignment="Right" Padding="10,4">
+                <StackPanel Orientation="Horizontal">
+                    <fa:IconBlock Icon="ArrowsRotate" FontSize="10" Margin="0,0,6,0"/>
+                    <TextBlock Text="Refresh Data" FontSize="11"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,0,0,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
@@ -133,31 +147,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="4" Margin="0,0,0,8">
-            <Button Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryActionButton}" HorizontalAlignment="Left" Width="120">
-                <StackPanel Orientation="Horizontal">
-                    <fa:IconBlock Icon="ArrowsRotate" FontSize="11" Margin="0,0,6,0"/>
-                    <TextBlock Text="Refresh Data"/>
-                </StackPanel>
-            </Button>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Command="{Binding CloseCommand}" Style="{StaticResource SecondaryActionButton}" Width="90" Margin="0,0,8,0" IsCancel="True">
-                    <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Xmark" FontSize="11" Margin="0,0,6,0"/>
-                        <TextBlock Text="Cancel"/>
-                    </StackPanel>
-                </Button>
-                <Button Command="{Binding PrintCommand}" Style="{StaticResource PrimaryActionButton}" Width="100" IsDefault="True">
-                    <StackPanel Orientation="Horizontal">
-                        <fa:IconBlock Icon="Check" FontSize="11" Margin="0,0,6,0"/>
-                        <TextBlock Text="OK / Print"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="5" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="6">
+        <Border Grid.Row="4" Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="6">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Command="{Binding OpenCountsheetListCommand}" Style="{StaticResource SecondaryActionButton}" Padding="10,4" Margin="0,0,6,0" FontSize="11">
                     <StackPanel Orientation="Horizontal">
@@ -180,7 +170,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="0" Grid.RowSpan="6" 
+        <Border Grid.Row="0" Grid.RowSpan="5" 
                 Background="#B3FFFFFF" 
                 Panel.ZIndex="100" 
                 CornerRadius="6"

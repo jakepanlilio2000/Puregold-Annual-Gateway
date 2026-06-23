@@ -21,18 +21,12 @@ namespace LocatorAutoPrint.ViewModels
             get => _usersList;
             set { _usersList = value; OnPropertyChanged(); }
         }
-
-        private string _firstName;
-        public string FirstName { get => _firstName; set { _firstName = value; OnPropertyChanged(); } }
-
-        private string _lastName;
-        public string LastName { get => _lastName; set { _lastName = value; OnPropertyChanged(); } }
-
-        private string _username;
-        public string Username { get => _username; set { _username = value; OnPropertyChanged(); } }
-
-        private string _rawPassword;
-        public string RawPassword { get => _rawPassword; set { _rawPassword = value; OnPropertyChanged(); } }
+        private string _singleInputName;
+        public string SingleInputName
+        {
+            get => _singleInputName;
+            set { _singleInputName = value; OnPropertyChanged(); }
+        }
 
         private UserModel _selectedUser;
         public UserModel SelectedUser
@@ -44,13 +38,7 @@ namespace LocatorAutoPrint.ViewModels
                 OnPropertyChanged();
                 if (_selectedUser != null)
                 {
-                    Username = _selectedUser.Username;
-                    var names = _selectedUser.Fullname?.Split(' ');
-                    if (names != null && names.Length >= 2)
-                    {
-                        FirstName = names[0];
-                        LastName = string.Join(" ", names, 1, names.Length - 1);
-                    }
+                    SingleInputName = _selectedUser.Username;
                 }
             }
         }
@@ -84,10 +72,9 @@ namespace LocatorAutoPrint.ViewModels
                 MessageBox.Show("User logged out from mobile app successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+        private bool CanSubmit() => !string.IsNullOrWhiteSpace(SingleInputName);
 
-        private bool CanSubmit() => !string.IsNullOrWhiteSpace(FirstName) && !string.IsNullOrWhiteSpace(LastName) && !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(RawPassword);
-
-        private async Task LoadUsersAsync()
+        private async System.Threading.Tasks.Task LoadUsersAsync()
         {
             var list = await _userService.GetUsersAsync();
             UsersList = new ObservableCollection<UserModel>(list);
@@ -120,8 +107,9 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task AddUserAsync()
         {
-            string storeCode = _configService.Config.DefaultStoreNum; 
-            await _userService.AddUserAsync(Username, RawPassword, FirstName, LastName, storeCode);
+            string storeCode = _configService.Config.DefaultStoreNum;
+            await _userService.AddUserAsync(SingleInputName, SingleInputName, SingleInputName, storeCode);
+
             ClearForm();
             await LoadUsersAsync();
             MessageBox.Show("User Added Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -129,8 +117,13 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task EditUserAsync()
         {
-            string storeCode = _configService.Config.DefaultStoreNum; // Get Store Code
-            await _userService.UpdateUserAsync(Username, RawPassword, FirstName, LastName, storeCode);
+            string storeCode = _configService.Config.DefaultStoreNum;
+
+            // UPDATED: Use the SelectedUser's ORIGINAL username as the database key so it doesn't fail if you rename them
+            string originalUsername = SelectedUser.Username;
+
+            await _userService.UpdateUserAsync(originalUsername, SingleInputName, SingleInputName, storeCode);
+
             ClearForm();
             await LoadUsersAsync();
             MessageBox.Show("User Updated Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -148,7 +141,7 @@ namespace LocatorAutoPrint.ViewModels
 
         private void ClearForm()
         {
-            FirstName = LastName = Username = RawPassword = string.Empty;
+            SingleInputName = string.Empty;
             SelectedUser = null;
         }
     }

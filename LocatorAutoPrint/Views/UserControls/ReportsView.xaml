@@ -36,10 +36,10 @@
                                 <TextBlock Text="Generate INF Report"/>
                             </StackPanel>
                         </Button>
-                        <Button Command="{Binding ExportInfToPdfCommand}" Style="{StaticResource SecondaryActionButton}" Width="140" Margin="8,0,0,0" ToolTip="Exports the loaded dataset to PDF.">
+                        <Button Command="{Binding PrintInfCommand}" Style="{StaticResource SecondaryActionButton}" Width="140" Margin="8,0,0,0" ToolTip="Sends the INF report to the default printer.">
                             <StackPanel Orientation="Horizontal">
-                                <fa:IconBlock Icon="FilePdf" FontSize="11" Margin="0,0,6,0"/>
-                                <TextBlock Text="Export to PDF"/>
+                                <fa:IconBlock Icon="Print" FontSize="11" Margin="0,0,6,0"/>
+                                <TextBlock Text="Print INF Report"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

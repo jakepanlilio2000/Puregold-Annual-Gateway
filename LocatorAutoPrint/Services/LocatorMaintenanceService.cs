@@ -24,25 +24,26 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    // UPDATED: Joins PRELOC to get Location and calculates Status
+                    
                     cmd.CommandText = @"
                 SELECT 
-                    l.SlotNo, 
+                    p.SlotNo, 
                     COUNT(c.RecNo) AS RecordCount, 
                     CAST(ISNULL(l.InUse, 0) AS BIT) AS InUse, 
                     CAST(ISNULL(l.Closed, 0) AS BIT) AS Closed,
                     ISNULL(p.Name, 'UNASSIGNED') AS Location,
                     CASE 
                         WHEN ISNULL(p.statusCancel, 0) = 1 THEN 'Inactive'
-                        WHEN COUNT(c.RecNo) = 0 THEN 'Unused'
-                        ELSE 'Active'
+                        WHEN COUNT(c.RecNo) > 0 THEN 'Active'
+                        ELSE 'Unused'
                     END AS Status
-                FROM PUREGOLD.dbo.LOCATOR l
-                LEFT JOIN PUREGOLD.dbo.COUNTSHEET c ON l.SlotNo = c.SlotNo
-                LEFT JOIN PUREGOLD.dbo.PRELOC p ON l.SlotNo = p.SlotNo
-                GROUP BY l.SlotNo, l.InUse, l.Closed, p.Name, p.statusCancel
-                ORDER BY CAST(l.SlotNo AS INT) ASC";
-                    // Ensure sorting works logically if SlotNo is numeric
+                FROM PUREGOLD.dbo.PRELOC p
+                LEFT JOIN PUREGOLD.dbo.LOCATOR l ON p.SlotNo = l.SlotNo
+                LEFT JOIN PUREGOLD.dbo.COUNTSHEET c ON p.SlotNo = c.SlotNo
+                GROUP BY p.SlotNo, l.SlotNo, l.InUse, l.Closed, p.Name, p.statusCancel
+                ORDER BY 
+                    CASE WHEN ISNUMERIC(p.SlotNo) = 1 THEN CAST(p.SlotNo AS INT) ELSE 999999 END, 
+                    p.SlotNo ASC";
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -71,10 +72,25 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "UPDATE PUREGOLD.dbo.LOCATOR SET InUse = @inUse, Closed = @closed WHERE SlotNo = @slotNo";
+                    cmd.CommandText = @"
+                IF EXISTS (SELECT 1 FROM PUREGOLD.dbo.LOCATOR WHERE SlotNo = @slotNo)
+                BEGIN
+                    -- Update if it already exists
+                    UPDATE PUREGOLD.dbo.LOCATOR 
+                    SET InUse = @inUse, Closed = @closed 
+                    WHERE SlotNo = @slotNo
+                END
+                ELSE
+                BEGIN
+                    -- Insert a new record if it was previously unused
+                    INSERT INTO PUREGOLD.dbo.LOCATOR (SlotNo, RecNo, InUse, Closed) 
+                    VALUES (@slotNo, 0, @inUse, @closed)
+                END";
+
+                    cmd.Parameters.AddWithValue("@slotNo", slotNo);
                     cmd.Parameters.AddWithValue("@inUse", inUse);
                     cmd.Parameters.AddWithValue("@closed", closed);
-                    cmd.Parameters.AddWithValue("@slotNo", slotNo);
+
                     await cmd.ExecuteNonQueryAsync();
                 }
             }

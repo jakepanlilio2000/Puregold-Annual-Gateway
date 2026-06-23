@@ -35,6 +35,7 @@
     public class SystemStatusModel
     {
         public int TotalLocators { get; set; }
+        public int OnlineConnections { get; set; }
         public int UnclosedLocators { get; set; }
     }
 }
