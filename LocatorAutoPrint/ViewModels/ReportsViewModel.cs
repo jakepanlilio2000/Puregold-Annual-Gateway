@@ -92,16 +92,12 @@ namespace LocatorAutoPrint.ViewModels
             IsLoading = true;
             try
             {
-                string tempFileName = $"INF_Report_{System.DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-                string tempPdfPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFileName);
-                _pdfService.ExportInfReportToPdf(InfRecords.ToList(), tempPdfPath);
-                await _printService.PrintPdfFileAsync(tempPdfPath);
-
-                System.Windows.MessageBox.Show("INF Report (PDF Format) sent to printer successfully.", "Print Complete", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                await _printService.PrintInfReportAsync(InfRecords.ToList());
+                MessageBox.Show("INF Report sent to printer successfully.", "Print Complete", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (System.Exception ex)
             {
-                System.Windows.MessageBox.Show($"Failed to print: {ex.Message}\n\nMake sure you have a default PDF viewer installed.", "Print Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                MessageBox.Show($"Failed to print: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -125,7 +121,7 @@ namespace LocatorAutoPrint.ViewModels
 
             if (!string.IsNullOrEmpty(textToCopy))
             {
-                System.Windows.Clipboard.SetText(textToCopy);
+                Clipboard.SetText(textToCopy);
                 ShowCopyFeedbackMessage($"Copied {fieldName} to clipboard!");
             }
         }
@@ -157,7 +153,7 @@ namespace LocatorAutoPrint.ViewModels
             if (item == null) return;
 
             string allData = $"UPC: {item.UPC}\nSKU: {item.SKU}\nDescription: {item.Description}";
-            System.Windows.Clipboard.SetText(allData);
+            Clipboard.SetText(allData);
             ShowCopyFeedbackMessage("Copied all data to clipboard!");
         }
 
@@ -223,7 +219,7 @@ namespace LocatorAutoPrint.ViewModels
             if (sfd.ShowDialog() == true)
             {
                 _pdfService.ExportInfReportToPdf(InfRecords.ToList(), sfd.FileName);
-                System.Windows.MessageBox.Show("PDF Exported Successfully.", "Export Complete");
+                MessageBox.Show("PDF Exported Successfully.", "Export Complete");
             }
         }
 

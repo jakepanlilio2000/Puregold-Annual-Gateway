@@ -3,11 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:LocatorAutoPrint.ViewModels"
         xmlns:views="clr-namespace:LocatorAutoPrint.Views.UserControls"
-        xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
+        xmlns:fa="clr-namespace:FontAwesome.Sharp;assembly=FontAwesome.Sharp"
         Title="Annual &amp; Variance Gateway" 
         Width="565" Height="565" 
         ResizeMode="NoResize" 
         WindowStartupLocation="CenterScreen" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
         Background="{StaticResource Brush.LightGray}">
 
     <Window.Resources>
