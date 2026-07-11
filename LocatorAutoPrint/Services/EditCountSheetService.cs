@@ -14,6 +14,7 @@ namespace LocatorAutoPrint.Services
         {
             _connectionString = connectionString;
         }
+
         public async Task<CountSheetEditModel> GetRecordAsync(string slotNo, int recNo)
         {
             using (var conn = new SqlConnection(_connectionString))
@@ -38,7 +39,8 @@ namespace LocatorAutoPrint.Services
                                 SlotNo = reader["SlotNo"].ToString(),
                                 RecNo = Convert.ToInt32(reader["RecNo"]),
                                 UPC = reader["UPC"].ToString(),
-                                SKU = Convert.ToDecimal(reader["SKU"]).ToString("0"),
+                                // Safely handle NULL SKUs from the database
+                                SKU = reader["SKU"] != DBNull.Value ? Convert.ToDecimal(reader["SKU"]).ToString("0") : "",
                                 Descr = reader["Descr"].ToString(),
                                 OriginalQty = Convert.ToDouble(reader["Qty"]),
                                 EditedQty = Convert.ToDouble(reader["EditedQty"])
@@ -50,8 +52,6 @@ namespace LocatorAutoPrint.Services
             return null;
         }
 
-        // Add these inside EditCountSheetService class:
-
         public async Task<int> GetNextRecordNumberAsync(string slotNo)
         {
             using (var conn = new SqlConnection(_connectionString))
@@ -59,7 +59,6 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    // Gets the highest RecNo and adds 1. Defaults to 1 if no records exist.
                     cmd.CommandText = "SELECT ISNULL(MAX(RecNo), 0) + 1 FROM PUREGOLD.dbo.COUNTSHEET WHERE SlotNo = @slotNo";
                     cmd.Parameters.AddWithValue("@slotNo", slotNo);
                     var result = await cmd.ExecuteScalarAsync();
@@ -70,21 +69,24 @@ namespace LocatorAutoPrint.Services
 
         public async Task<bool> InsertRecordAsync(CountSheetEditModel record)
         {
+            // Safely parse the SKU. If it's blank or invalid, default to 0 to prevent SQL crashes.
+            decimal.TryParse(record.SKU, out decimal skuValue);
+
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                INSERT INTO PUREGOLD.dbo.COUNTSHEET 
-                (SlotNo, RecNo, UPC, SKU, Descr, Qty, EditedQty, Edited, Added, CountDate)
-                VALUES 
-                (@slotNo, @recNo, @upc, @sku, @descr, @qty, @editedQty, 1, 1, GETDATE())";
+                        INSERT INTO PUREGOLD.dbo.COUNTSHEET 
+                        (SlotNo, RecNo, UPC, SKU, Descr, Qty, EditedQty, Edited, Added, CountDate)
+                        VALUES 
+                        (@slotNo, @recNo, @upc, @sku, @descr, @qty, @editedQty, 1, 1, GETDATE())";
 
                     cmd.Parameters.AddWithValue("@slotNo", record.SlotNo);
                     cmd.Parameters.AddWithValue("@recNo", record.RecNo);
                     cmd.Parameters.AddWithValue("@upc", record.UPC ?? "");
-                    cmd.Parameters.AddWithValue("@sku", record.SKU ?? "");
+                    cmd.Parameters.AddWithValue("@sku", skuValue); // Using parsed numeric value
                     cmd.Parameters.AddWithValue("@descr", record.Descr ?? "");
                     cmd.Parameters.AddWithValue("@qty", 0);
                     cmd.Parameters.AddWithValue("@editedQty", record.EditedQty);
@@ -94,6 +96,7 @@ namespace LocatorAutoPrint.Services
                 }
             }
         }
+
         public async Task<List<ItemLookupResult>> SearchItemAsync(string keyword)
         {
             var results = new List<ItemLookupResult>();
@@ -103,9 +106,9 @@ namespace LocatorAutoPrint.Services
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                SELECT UPC, SKU, Descr 
-                FROM PUREGOLD.dbo.items 
-                WHERE UPC LIKE @kw OR SKU LIKE @kw OR Descr LIKE @kw";
+                        SELECT UPC, SKU, Descr 
+                        FROM PUREGOLD.dbo.items 
+                        WHERE UPC LIKE @kw OR SKU LIKE @kw OR Descr LIKE @kw";
 
                     cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
 
@@ -116,7 +119,7 @@ namespace LocatorAutoPrint.Services
                             results.Add(new ItemLookupResult
                             {
                                 UPC = reader["UPC"].ToString(),
-                                SKU = Convert.ToDecimal(reader["SKU"]).ToString("0"),
+                                SKU = reader["SKU"] != DBNull.Value ? Convert.ToDecimal(reader["SKU"]).ToString("0") : "",
                                 Description = reader["Descr"].ToString()
                             });
                         }
@@ -128,6 +131,9 @@ namespace LocatorAutoPrint.Services
 
         public async Task<bool> UpdateRecordAsync(CountSheetEditModel record)
         {
+            // Safely parse the SKU. If it's blank or invalid, default to 0 to prevent SQL crashes.
+            decimal.TryParse(record.SKU, out decimal skuValue);
+
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
@@ -142,9 +148,9 @@ namespace LocatorAutoPrint.Services
                             Edited = 1 
                         WHERE SlotNo = @slotNo AND RecNo = @recNo";
 
-                    cmd.Parameters.AddWithValue("@upc", record.UPC);
-                    cmd.Parameters.AddWithValue("@sku", record.SKU);
-                    cmd.Parameters.AddWithValue("@descr", record.Descr);
+                    cmd.Parameters.AddWithValue("@upc", record.UPC ?? "");
+                    cmd.Parameters.AddWithValue("@sku", skuValue); // Using parsed numeric value
+                    cmd.Parameters.AddWithValue("@descr", record.Descr ?? "");
                     cmd.Parameters.AddWithValue("@editedQty", record.EditedQty);
                     cmd.Parameters.AddWithValue("@slotNo", record.SlotNo);
                     cmd.Parameters.AddWithValue("@recNo", record.RecNo);
@@ -164,10 +170,10 @@ namespace LocatorAutoPrint.Services
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                SELECT RecNo, UPC, SKU, Descr, Qty, EditedQty, CountDate, Edited, Added
-                FROM PUREGOLD.dbo.COUNTSHEET 
-                WHERE SlotNo = @slotno 
-                ORDER BY RecNo";
+                        SELECT RecNo, UPC, SKU, Descr, Qty, EditedQty, CountDate, Edited, Added
+                        FROM PUREGOLD.dbo.COUNTSHEET 
+                        WHERE SlotNo = @slotno 
+                        ORDER BY RecNo";
 
                     cmd.Parameters.AddWithValue("@slotno", slotNo);
 
@@ -186,7 +192,7 @@ namespace LocatorAutoPrint.Services
                             }
 
                             summary.TotalScanned++;
-                            summary.GrandTotal += editedQty; 
+                            summary.GrandTotal += editedQty;
                             if (reader["Descr"].ToString().Trim().Equals("INF", StringComparison.OrdinalIgnoreCase)) summary.InfCount++;
                             if (isAdded) summary.TotalAdded++;
                             if (isEdited) summary.TotalEdited++;
@@ -197,7 +203,7 @@ namespace LocatorAutoPrint.Services
                                 {
                                     RecNo = reader["RecNo"].ToString(),
                                     UPC = reader["UPC"].ToString(),
-                                    SKU = Convert.ToDecimal(reader["SKU"]).ToString("0"),
+                                    SKU = reader["SKU"] != DBNull.Value ? Convert.ToDecimal(reader["SKU"]).ToString("0") : "",
                                     Descr = reader["Descr"].ToString(),
                                     OldQtyStr = oldQty % 1 == 0 ? oldQty.ToString("0") : oldQty.ToString("0.###"),
                                     EditedQtyStr = editedQty % 1 == 0 ? editedQty.ToString("0") : editedQty.ToString("0.###")
