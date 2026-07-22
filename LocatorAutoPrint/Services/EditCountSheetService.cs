@@ -52,7 +52,6 @@ namespace LocatorAutoPrint.Services
                                 SlotNo = reader["SlotNo"].ToString(),
                                 RecNo = Convert.ToInt32(reader["RecNo"]),
                                 UPC = reader["UPC"].ToString(),
-                                // Safely handle NULL SKUs from the database
                                 SKU = reader["SKU"] != DBNull.Value ? Convert.ToDecimal(reader["SKU"]).ToString("0") : "",
                                 Descr = reader["Descr"].ToString(),
                                 OriginalQty = Convert.ToDouble(reader["Qty"]),
@@ -82,7 +81,6 @@ namespace LocatorAutoPrint.Services
 
         public async Task<bool> InsertRecordAsync(CountSheetEditModel record)
         {
-            // Safely parse the SKU. If it's blank or invalid, default to 0 to prevent SQL crashes.
             decimal.TryParse(record.SKU, out decimal skuValue);
 
             using (var conn = new SqlConnection(_connectionString))
@@ -99,7 +97,7 @@ namespace LocatorAutoPrint.Services
                     cmd.Parameters.AddWithValue("@slotNo", record.SlotNo);
                     cmd.Parameters.AddWithValue("@recNo", record.RecNo);
                     cmd.Parameters.AddWithValue("@upc", record.UPC ?? "");
-                    cmd.Parameters.AddWithValue("@sku", skuValue); // Using parsed numeric value
+                    cmd.Parameters.AddWithValue("@sku", skuValue); 
                     cmd.Parameters.AddWithValue("@descr", record.Descr ?? "");
                     cmd.Parameters.AddWithValue("@qty", 0);
                     cmd.Parameters.AddWithValue("@editedQty", record.EditedQty);
@@ -119,9 +117,13 @@ namespace LocatorAutoPrint.Services
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                        SELECT UPC, SKU, Descr 
-                        FROM PUREGOLD.dbo.items 
-                        WHERE UPC LIKE @kw OR SKU LIKE @kw OR Descr LIKE @kw";
+                                    SELECT UPC, SKU, Descr
+                                    FROM PUREGOLD.dbo.Items
+                                    WHERE
+                                          UPC   LIKE @kw
+                                       OR SKU   LIKE @kw
+                                       OR Descr LIKE @kw
+                                    ORDER BY UPC";
 
                     cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
 
@@ -144,7 +146,6 @@ namespace LocatorAutoPrint.Services
 
         public async Task<bool> UpdateRecordAsync(CountSheetEditModel record)
         {
-            // Safely parse the SKU. If it's blank or invalid, default to 0 to prevent SQL crashes.
             decimal.TryParse(record.SKU, out decimal skuValue);
 
             using (var conn = new SqlConnection(_connectionString))
