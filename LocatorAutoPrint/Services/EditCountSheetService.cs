@@ -153,41 +153,29 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
+
                     cmd.CommandText = @"
-                        UPDATE PUREGOLD.dbo.COUNTSHEET
-                            SET
-                                RecNo = @newRecNo,
-                                UPC = @newUPC,
-                                SKU = @newSKU,
-                                Descr = @newDescr,
-                                EditedQty = @newEditedQty,
-                                Edited = 1
-                            WHERE
-                                SlotNo = @oldSlotNo
-                            AND RecNo = @oldRecNo
-                            AND CountDate = @oldCountDate
-                            AND UPC = @oldUPC
-                            AND SKU = @oldSKU
-                            AND Descr = @oldDescr
-                            AND Qty = @oldQty
-                            AND EditedQty = @oldEditedQty
-                            AND Posted = @oldPosted
-                            AND Added = @oldAdded
-                            AND Edited = @oldEdited
-                            AND LastEditedQty IS NULL;";
+                UPDATE PUREGOLD.dbo.COUNTSHEET 
+                SET UPC = @upc, 
+                    SKU = @sku, 
+                    Descr = @descr, 
+                    EditedQty = @editedQty, 
+                    Edited = 1 
+                WHERE SlotNo = @slotNo 
+                  AND RecNo = @recNo";
 
                     cmd.Parameters.AddWithValue("@upc", record.UPC ?? "");
-                    cmd.Parameters.AddWithValue("@sku", skuValue); 
+                    cmd.Parameters.AddWithValue("@sku", skuValue);
                     cmd.Parameters.AddWithValue("@descr", record.Descr ?? "");
                     cmd.Parameters.AddWithValue("@editedQty", record.EditedQty);
                     cmd.Parameters.AddWithValue("@slotNo", record.SlotNo);
                     cmd.Parameters.AddWithValue("@recNo", record.RecNo);
 
                     int rowsAffected = await cmd.ExecuteNonQueryAsync();
+
                     if (rowsAffected == 0)
                     {
-                        throw new Exception(
-                            "The record was modified by another user. Please reload it before saving.");
+                        throw new Exception("The record could not be found to update. It may have been deleted by another user.");
                     }
 
                     return true;
