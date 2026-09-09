@@ -238,6 +238,7 @@
     <Compile Include="Services\ConfigService.cs" />
     <Compile Include="Services\DatabaseService.cs" />
     <Compile Include="Services\EditCountSheetService.cs" />
+    <Compile Include="Services\ErrorLoggerService.cs" />
     <Compile Include="Services\LocatorMaintenanceService.cs" />
     <Compile Include="Services\PdfExportService.cs" />
     <Compile Include="Services\PrintService.cs" />

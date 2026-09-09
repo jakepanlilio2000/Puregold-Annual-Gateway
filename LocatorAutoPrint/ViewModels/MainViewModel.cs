@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using LocatorAutoPrint.Commands;
@@ -69,23 +70,37 @@ namespace LocatorAutoPrint.ViewModels
             ShowEditCommand = new RelayCommand(_ => CurrentViewModel = _editCountSheetViewModel);
             ShowReportsCommand = new RelayCommand(_ => CurrentViewModel = ReportsViewModel);
             ShowUsersCommand = new RelayCommand(_ => CurrentViewModel = UsersViewModel);
+
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _clockTimer.Tick += (s, e) => CurrentTime = DateTime.Now.ToString("hh:mm:ss tt  MM/dd/yyyy");
             _clockTimer.Start();
+
             _dbTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
-            _dbTimer.Tick += async (s, e) => await CheckSystemStatusAsync();
+            _dbTimer.Tick += async (s, e) => await SafeCheckSystemStatusAsync();
             _dbTimer.Start();
 
-            _ = CheckSystemStatusAsync(); 
+            _ = SafeCheckSystemStatusAsync();
         }
 
-        private async System.Threading.Tasks.Task CheckSystemStatusAsync()
+        private async Task SafeCheckSystemStatusAsync()
         {
-            bool isConnected = await _statusService.CheckDbConnectionAsync();
-            DbStatus = isConnected ? "SQL Server Connected" : "SQL Server Disconnected";
-            OnPropertyChanged(nameof(FooterDbDisplay));
+            try
+            {
+                bool isConnected = await _statusService.CheckDbConnectionAsync();
+                DbStatus = isConnected ? "SQL Server Connected" : "SQL Server Disconnected";
+                OnPropertyChanged(nameof(FooterDbDisplay));
 
-            if (isConnected) HeaderStatus = await _statusService.GetHeaderStatusAsync();
+                if (isConnected)
+                {
+                    HeaderStatus = await _statusService.GetHeaderStatusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                DbStatus = "SQL Server Disconnected";
+                OnPropertyChanged(nameof(FooterDbDisplay));
+                ErrorLoggerService.LogException("MainViewModel.CheckSystemStatusAsync", ex, isTerminating: false);
+            }
         }
     }
 }

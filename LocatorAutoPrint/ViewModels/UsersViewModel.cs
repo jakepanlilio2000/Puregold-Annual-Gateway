@@ -1,12 +1,13 @@
-﻿using LocatorAutoPrint.Commands;
-using LocatorAutoPrint.Models;
-using LocatorAutoPrint.Services;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using LocatorAutoPrint.Commands;
+using LocatorAutoPrint.Models;
+using LocatorAutoPrint.Services;
 
 namespace LocatorAutoPrint.ViewModels
 {
@@ -63,28 +64,44 @@ namespace LocatorAutoPrint.ViewModels
             LogoutMobileAppCommand = new RelayCommand(async _ => await LogoutMobileAppAsync(), _ => SelectedUser != null);
         }
 
-        private async System.Threading.Tasks.Task LogoutMobileAppAsync()
+        private async Task LogoutMobileAppAsync()
         {
-            if (MessageBox.Show($"Force logout mobile app for user: {SelectedUser.Username}?", "Confirm Mobile Logout", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            try
             {
-                await _userService.LogoutMobileAppAsync(SelectedUser.Username);
-                await LoadUsersAsync();
-                MessageBox.Show("User logged out from mobile app successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (MessageBox.Show($"Force logout mobile app for user: {SelectedUser.Username}?", "Confirm Mobile Logout", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                {
+                    await _userService.LogoutMobileAppAsync(SelectedUser.Username);
+                    await LoadUsersAsync();
+                    MessageBox.Show("User logged out from mobile app successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("UsersViewModel.LogoutMobileAppAsync", ex);
+                MessageBox.Show($"Failed to logout mobile app: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private bool CanSubmit() => !string.IsNullOrWhiteSpace(SingleInputName);
 
-        private async System.Threading.Tasks.Task LoadUsersAsync()
+        private async Task LoadUsersAsync()
         {
-            var list = await _userService.GetUsersAsync();
-            UsersList = new ObservableCollection<UserModel>(list);
-
-            var pingTasks = UsersList.Where(u => !string.IsNullOrWhiteSpace(u.IpAddress)).Select(async user =>
+            try
             {
-                user.IsOnline = await PingAddressAsync(user.IpAddress);
-            });
+                var list = await _userService.GetUsersAsync();
+                UsersList = new ObservableCollection<UserModel>(list);
 
-            await Task.WhenAll(pingTasks);
+                var pingTasks = UsersList.Where(u => !string.IsNullOrWhiteSpace(u.IpAddress)).Select(async user =>
+                {
+                    user.IsOnline = await PingAddressAsync(user.IpAddress);
+                });
+
+                await Task.WhenAll(pingTasks);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("UsersViewModel.LoadUsersAsync", ex);
+            }
         }
 
         private async Task<bool> PingAddressAsync(string ipAddress)
@@ -105,37 +122,59 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
-        private async System.Threading.Tasks.Task AddUserAsync()
+        private async Task AddUserAsync()
         {
-            string storeCode = _configService.Config.DefaultStoreNum;
-            await _userService.AddUserAsync(SingleInputName, SingleInputName, SingleInputName, storeCode);
-
-            ClearForm();
-            await LoadUsersAsync();
-            MessageBox.Show("User Added Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private async System.Threading.Tasks.Task EditUserAsync()
-        {
-            string storeCode = _configService.Config.DefaultStoreNum;
-
-            // UPDATED: Use the SelectedUser's ORIGINAL username as the database key so it doesn't fail if you rename them
-            string originalUsername = SelectedUser.Username;
-
-            await _userService.UpdateUserAsync(originalUsername, SingleInputName, SingleInputName, storeCode);
-
-            ClearForm();
-            await LoadUsersAsync();
-            MessageBox.Show("User Updated Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private async System.Threading.Tasks.Task DeleteUserAsync()
-        {
-            if (MessageBox.Show($"Delete user {SelectedUser.Username}?", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            try
             {
-                await _userService.DeleteUserAsync(SelectedUser.Username);
+                string storeCode = _configService.Config.DefaultStoreNum;
+                await _userService.AddUserAsync(SingleInputName, SingleInputName, SingleInputName, storeCode);
+
                 ClearForm();
                 await LoadUsersAsync();
+                MessageBox.Show("User Added Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("UsersViewModel.AddUserAsync", ex);
+                MessageBox.Show($"Error adding user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task EditUserAsync()
+        {
+            try
+            {
+                string storeCode = _configService.Config.DefaultStoreNum;
+                string originalUsername = SelectedUser.Username;
+
+                await _userService.UpdateUserAsync(originalUsername, SingleInputName, SingleInputName, storeCode);
+
+                ClearForm();
+                await LoadUsersAsync();
+                MessageBox.Show("User Updated Successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("UsersViewModel.EditUserAsync", ex);
+                MessageBox.Show($"Error updating user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task DeleteUserAsync()
+        {
+            try
+            {
+                if (MessageBox.Show($"Delete user {SelectedUser.Username}?", "Confirm", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    await _userService.DeleteUserAsync(SelectedUser.Username);
+                    ClearForm();
+                    await LoadUsersAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("UsersViewModel.DeleteUserAsync", ex);
+                MessageBox.Show($"Error deleting user: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

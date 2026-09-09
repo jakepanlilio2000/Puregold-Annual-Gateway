@@ -1,13 +1,15 @@
-﻿using LocatorAutoPrint.Commands;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Data;
+using System.Windows.Input;
+using LocatorAutoPrint.Commands;
 using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Data;
-using System.Linq;
-using System.Windows;
-using System.Windows.Input;
 
 namespace LocatorAutoPrint.ViewModels
 {
@@ -63,11 +65,9 @@ namespace LocatorAutoPrint.ViewModels
         private PrelocModel _selectedPreloc;
         public PrelocModel SelectedPreloc { get => _selectedPreloc; set { _selectedPreloc = value; OnPropertyChanged(); } }
 
-
         public ICommand LoadCountsheetListCommand { get; }
         public ICommand ViewCountsheetCommand { get; }
         public ICommand BackupCountsheetCommand { get; }
-
         public ICommand LoadPrelocListCommand { get; }
         public ICommand AddPrelocCommand { get; }
         public ICommand EditPrelocCommand { get; }
@@ -96,126 +96,186 @@ namespace LocatorAutoPrint.ViewModels
             InactiveLocatorsView?.Refresh();
         }
 
-        private async System.Threading.Tasks.Task LoadCountsheetsAsync()
+        private async Task LoadCountsheetsAsync()
         {
-            foreach (var item in CountsheetList) item.PropertyChanged -= LocatorListModel_PropertyChanged;
-            CountsheetList.Clear();
-
-            var list = await _service.GetLocatorListAsync();
-
-            var distinctLocations = list.Select(x => x.Location).Distinct().OrderBy(x => x).ToList();
-            LocationsList.Clear();
-            LocationsList.Add("All Locations");
-            foreach (var loc in distinctLocations) LocationsList.Add(loc);
-            _selectedLocationFilter = "All Locations"; 
-            OnPropertyChanged(nameof(SelectedLocationFilter));
-
-            foreach (var item in list)
+            try
             {
-                item.PropertyChanged += LocatorListModel_PropertyChanged;
-                CountsheetList.Add(item);
+                foreach (var item in CountsheetList) item.PropertyChanged -= LocatorListModel_PropertyChanged;
+                CountsheetList.Clear();
+
+                var list = await _service.GetLocatorListAsync();
+
+                var distinctLocations = list.Select(x => x.Location).Distinct().OrderBy(x => x).ToList();
+                LocationsList.Clear();
+                LocationsList.Add("All Locations");
+                foreach (var loc in distinctLocations) LocationsList.Add(loc);
+                _selectedLocationFilter = "All Locations";
+                OnPropertyChanged(nameof(SelectedLocationFilter));
+
+                foreach (var item in list)
+                {
+                    item.PropertyChanged += LocatorListModel_PropertyChanged;
+                    CountsheetList.Add(item);
+                }
+
+                AllLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+                ActiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+                UnusedLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+                InactiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
+
+                AllLocatorsView.Filter = CreateFilter(null);
+                ActiveLocatorsView.Filter = CreateFilter("Active");
+                UnusedLocatorsView.Filter = CreateFilter("Unused");
+                InactiveLocatorsView.Filter = CreateFilter("Inactive");
+
+                OnPropertyChanged(nameof(AllLocatorsView));
+                OnPropertyChanged(nameof(ActiveLocatorsView));
+                OnPropertyChanged(nameof(UnusedLocatorsView));
+                OnPropertyChanged(nameof(InactiveLocatorsView));
             }
-
-            AllLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
-            ActiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
-            UnusedLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
-            InactiveLocatorsView = new CollectionViewSource { Source = CountsheetList }.View;
-
-            AllLocatorsView.Filter = CreateFilter(null);
-            ActiveLocatorsView.Filter = CreateFilter("Active");
-            UnusedLocatorsView.Filter = CreateFilter("Unused");
-            InactiveLocatorsView.Filter = CreateFilter("Inactive");
-
-            OnPropertyChanged(nameof(AllLocatorsView));
-            OnPropertyChanged(nameof(ActiveLocatorsView));
-            OnPropertyChanged(nameof(UnusedLocatorsView));
-            OnPropertyChanged(nameof(InactiveLocatorsView));
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.LoadCountsheetsAsync", ex);
+                CustomMessageBox.Show($"Failed to load countsheets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private System.Predicate<object> CreateFilter(string targetStatus)
+        private Predicate<object> CreateFilter(string targetStatus)
         {
             return obj =>
             {
                 var loc = obj as LocatorListModel;
                 if (loc == null) return false;
 
-                // 1. Tab Status
                 if (targetStatus != null && loc.Status != targetStatus) return false;
-
-                // 2. Location Dropdown
                 if (!string.IsNullOrEmpty(SelectedLocationFilter) && SelectedLocationFilter != "All Locations")
                 {
                     if (loc.Location != SelectedLocationFilter) return false;
                 }
 
-                // 3. Search Box
                 if (!string.IsNullOrWhiteSpace(SearchLocatorQuery))
                 {
-                    if (!loc.SlotNo.Equals(SearchLocatorQuery.Trim(), System.StringComparison.OrdinalIgnoreCase)) return false;
+                    if (!loc.SlotNo.Equals(SearchLocatorQuery.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
                 }
 
                 return true;
             };
         }
 
+        // CRITICAL FIX: Wrapped inside try/catch to avoid unhandled async void thread crashes
         private async void LocatorListModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (sender is LocatorListModel locator && (e.PropertyName == nameof(locator.InUse) || e.PropertyName == nameof(locator.Closed)))
             {
-                await _service.UpdateLocatorToggleAsync(locator.SlotNo, locator.InUse, locator.Closed);
+                try
+                {
+                    await _service.UpdateLocatorToggleAsync(locator.SlotNo, locator.InUse, locator.Closed);
+                }
+                catch (Exception ex)
+                {
+                    ErrorLoggerService.LogException("LocatorMaintenanceViewModel.LocatorListModel_PropertyChanged", ex);
+                    CustomMessageBox.Show($"Failed to update locator status: {ex.Message}", "Update Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
-        private async System.Threading.Tasks.Task LoadPrelocsAsync()
+        private async Task LoadPrelocsAsync()
         {
-            PrelocList.Clear();
-            var list = await _service.GetPrelocListAsync();
-            foreach (var p in list) PrelocList.Add(p);
-        }
-
-        private async System.Threading.Tasks.Task ViewCountsheetAsync()
-        {
-            SelectedLocatorDetails.Clear();
-            var details = await _service.GetCountsheetDetailsAsync(SelectedCountsheetLocator.SlotNo);
-            foreach (var d in details) SelectedLocatorDetails.Add(d);
-
-            var win = new Views.Modals.CountsheetDetailsWindow { DataContext = this };
-            win.ShowDialog();
-        }
-
-        private async System.Threading.Tasks.Task BackupCountsheetAsync()
-        {
-            var result = await _service.BackupLocatorToTxtAsync(SelectedCountsheetLocator.SlotNo, _configService.AppBaseDir);
-            CustomMessageBox.Show(result.Message, result.Success ? "Backup Success" : "Backup Failed", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
-        }
-
-        private async System.Threading.Tasks.Task AddPrelocAsync()
-        {
-            var result = await _service.AddPrelocAsync(NewSlotNo, NewLocatorName);
-            if (result.Success)
+            try
             {
-                NewSlotNo = string.Empty;
-                NewLocatorName = string.Empty;
-                await LoadPrelocsAsync();
+                PrelocList.Clear();
+                var list = await _service.GetPrelocListAsync();
+                foreach (var p in list) PrelocList.Add(p);
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show(result.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.LoadPrelocsAsync", ex);
             }
         }
 
-        private async System.Threading.Tasks.Task EditPrelocAsync()
+        private async Task ViewCountsheetAsync()
         {
-            await _service.UpdatePrelocAsync(SelectedPreloc.SlotNo, SelectedPreloc.Name);
-            MessageBox.Show("Locator updated.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            try
+            {
+                SelectedLocatorDetails.Clear();
+                var details = await _service.GetCountsheetDetailsAsync(SelectedCountsheetLocator.SlotNo);
+                foreach (var d in details) SelectedLocatorDetails.Add(d);
+
+                var win = new Views.Modals.CountsheetDetailsWindow { DataContext = this };
+                win.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.ViewCountsheetAsync", ex);
+                CustomMessageBox.Show($"Failed to view countsheet: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private async System.Threading.Tasks.Task DeletePrelocAsync()
+        private async Task BackupCountsheetAsync()
         {
-            if (MessageBox.Show($"Are you sure you want to delete {SelectedPreloc.SlotNo}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            try
             {
-                await _service.DeletePrelocAsync(SelectedPreloc.SlotNo);
-                await LoadPrelocsAsync();
+                var result = await _service.BackupLocatorToTxtAsync(SelectedCountsheetLocator.SlotNo, _configService.AppBaseDir);
+                CustomMessageBox.Show(result.Message, result.Success ? "Backup Success" : "Backup Failed", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.BackupCountsheetAsync", ex);
+                CustomMessageBox.Show($"Backup failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task AddPrelocAsync()
+        {
+            try
+            {
+                var result = await _service.AddPrelocAsync(NewSlotNo, NewLocatorName);
+                if (result.Success)
+                {
+                    NewSlotNo = string.Empty;
+                    NewLocatorName = string.Empty;
+                    await LoadPrelocsAsync();
+                }
+                else
+                {
+                    MessageBox.Show(result.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.AddPrelocAsync", ex);
+                MessageBox.Show($"Error adding preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task EditPrelocAsync()
+        {
+            try
+            {
+                await _service.UpdatePrelocAsync(SelectedPreloc.SlotNo, SelectedPreloc.Name);
+                MessageBox.Show("Locator updated.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.EditPrelocAsync", ex);
+                MessageBox.Show($"Error updating preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task DeletePrelocAsync()
+        {
+            try
+            {
+                if (MessageBox.Show($"Are you sure you want to delete {SelectedPreloc.SlotNo}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    await _service.DeletePrelocAsync(SelectedPreloc.SlotNo);
+                    await LoadPrelocsAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorMaintenanceViewModel.DeletePrelocAsync", ex);
+                MessageBox.Show($"Error deleting preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

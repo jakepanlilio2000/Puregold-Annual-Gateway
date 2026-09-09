@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using LocatorAutoPrint.Models;
@@ -20,18 +21,19 @@ namespace LocatorAutoPrint.Services
             var results = new List<InfReportModel>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
+                    cmd.CommandTimeout = 15;
                     cmd.CommandText = @"
                 SELECT SlotNo, RecNo, SKU, UPC, Descr, Qty 
-                FROM PUREGOLD.dbo.COUNTSHEET 
+                FROM PUREGOLD.dbo.COUNTSHEET WITH (NOLOCK)
                 WHERE Descr = 'INF'
                 ORDER BY SlotNo, RecNo";
 
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             results.Add(new InfReportModel
                             {
@@ -54,20 +56,21 @@ namespace LocatorAutoPrint.Services
             var results = new List<SummaryReportModel>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
+                    cmd.CommandTimeout = 15;
                     cmd.CommandText = @"
                 SELECT c.SlotNo, COUNT(c.RecNo) as RecordCount, SUM(c.EditedQty) as TotalQty, 
                        COUNT(DISTINCT c.SKU) as SkuCount, p.remarks as Remarks
-                FROM PUREGOLD.dbo.COUNTSHEET c
-                LEFT JOIN PUREGOLD.dbo.PRELOC p ON c.SlotNo = p.SlotNo
+                FROM PUREGOLD.dbo.COUNTSHEET c WITH (NOLOCK)
+                LEFT JOIN PUREGOLD.dbo.PRELOC p WITH (NOLOCK) ON c.SlotNo = p.SlotNo
                 GROUP BY c.SlotNo, p.remarks
                 ORDER BY c.SlotNo";
 
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             results.Add(new SummaryReportModel
                             {
@@ -89,16 +92,18 @@ namespace LocatorAutoPrint.Services
             var kpis = new MonitoringKpiModel();
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd1 = conn.CreateCommand())
                 {
-                    cmd1.CommandText = "SELECT COUNT(SlotNo) FROM PUREGOLD.dbo.LOCATOR WHERE InUse = 1 AND Closed = 0";
-                    kpis.LoadedLocators = Convert.ToInt32(await cmd1.ExecuteScalarAsync());
+                    cmd1.CommandTimeout = 10;
+                    cmd1.CommandText = "SELECT COUNT(SlotNo) FROM PUREGOLD.dbo.LOCATOR WITH (NOLOCK) WHERE InUse = 1 AND Closed = 0";
+                    kpis.LoadedLocators = Convert.ToInt32(await cmd1.ExecuteScalarAsync().ConfigureAwait(false));
                 }
                 using (var cmd2 = conn.CreateCommand())
                 {
-                    cmd2.CommandText = "SELECT COUNT(DISTINCT c.SlotNo) FROM PUREGOLD.dbo.COUNTSHEET c JOIN PUREGOLD.dbo.LOCATOR l ON c.SlotNo = l.SlotNo WHERE l.Closed = 0";
-                    kpis.PreCounts = Convert.ToInt32(await cmd2.ExecuteScalarAsync());
+                    cmd2.CommandTimeout = 10;
+                    cmd2.CommandText = "SELECT COUNT(DISTINCT c.SlotNo) FROM PUREGOLD.dbo.COUNTSHEET c WITH (NOLOCK) JOIN PUREGOLD.dbo.LOCATOR l WITH (NOLOCK) ON c.SlotNo = l.SlotNo WHERE l.Closed = 0";
+                    kpis.PreCounts = Convert.ToInt32(await cmd2.ExecuteScalarAsync().ConfigureAwait(false));
                 }
             }
             return kpis;
@@ -109,19 +114,20 @@ namespace LocatorAutoPrint.Services
             var results = new List<UnloadedLocatorModel>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
+                    cmd.CommandTimeout = 15;
                     cmd.CommandText = @"
                 SELECT p.SlotNo, p.Name, p.stocklocation as Location
-                FROM PUREGOLD.dbo.PRELOC p
-                LEFT JOIN PUREGOLD.dbo.COUNTSHEET c ON p.SlotNo = c.SlotNo
-                LEFT JOIN PUREGOLD.dbo.LOCATOR l ON p.SlotNo = l.SlotNo
+                FROM PUREGOLD.dbo.PRELOC p WITH (NOLOCK)
+                LEFT JOIN PUREGOLD.dbo.COUNTSHEET c WITH (NOLOCK) ON p.SlotNo = c.SlotNo
+                LEFT JOIN PUREGOLD.dbo.LOCATOR l WITH (NOLOCK) ON p.SlotNo = l.SlotNo
                 WHERE c.SlotNo IS NULL OR l.InUse = 0 OR l.InUse IS NULL";
 
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             results.Add(new UnloadedLocatorModel
                             {
@@ -141,13 +147,14 @@ namespace LocatorAutoPrint.Services
             var results = new List<LocatorLocationModel>();
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT SlotNo, Name, aisle, bay, bayname, stocklocation FROM PUREGOLD.dbo.PRELOC";
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    cmd.CommandTimeout = 15;
+                    cmd.CommandText = "SELECT SlotNo, Name, aisle, bay, bayname, stocklocation FROM PUREGOLD.dbo.PRELOC WITH (NOLOCK)";
+                    using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             results.Add(new LocatorLocationModel
                             {
@@ -172,19 +179,20 @@ namespace LocatorAutoPrint.Services
 
             using (var conn = new SqlConnection(_connectionString))
             {
-                await conn.OpenAsync();
+                await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
+                    cmd.CommandTimeout = 15;
                     cmd.CommandText = @"
                         SELECT cupc, sku, citem 
-                        FROM exclusivesdb.dbo.TBLpricechk 
+                        FROM exclusivesdb.dbo.TBLpricechk WITH (NOLOCK)
                         WHERE cupc LIKE @kw OR sku LIKE @kw OR citem LIKE @kw";
 
-                    cmd.Parameters.AddWithValue("@kw", $"%{keyword}%");
+                    cmd.Parameters.Add("@kw", SqlDbType.VarChar, 100).Value = $"%{keyword.Trim()}%";
 
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             results.Add(new ItemLookupResult
                             {
@@ -199,47 +207,52 @@ namespace LocatorAutoPrint.Services
             return results;
         }
 
-        // Add this method inside your ReportsService class
-
         public async Task<(bool Success, string Message)> AddToMasterfileAsync(ItemLookupResult item)
         {
+            if (item == null) return (false, "No item selected.");
+
             try
             {
                 using (var conn = new SqlConnection(_connectionString))
                 {
-                    await conn.OpenAsync();
+                    await conn.OpenAsync().ConfigureAwait(false);
 
-                    // 1. Check if the UPC already exists to prevent duplication/errors
-                    using (var checkCmd = conn.CreateCommand())
-                    {
-                        checkCmd.CommandText = "SELECT COUNT(1) FROM PUREGOLD.dbo.ITEMS WHERE UPC = @upc";
-                        checkCmd.Parameters.AddWithValue("@upc", item.UPC);
-                        int exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
-
-                        if (exists > 0) return (false, "Item already exists in the Masterfile.");
-                    }
-
-                    // 2. Insert into the ITEMS table with the defaults
                     using (var cmd = conn.CreateCommand())
                     {
+                        cmd.CommandTimeout = 15;
                         cmd.CommandText = @"
-                    INSERT INTO PUREGOLD.dbo.ITEMS (UPC, SKU, Descr, Price, Type) 
-                    VALUES (@upc, @sku, @descr, @price, @type)";
+                        IF EXISTS (SELECT 1 FROM PUREGOLD.dbo.ITEMS WITH (NOLOCK) WHERE UPC = @upc)
+                        BEGIN
+                            SELECT -1; -- Indicates already exists
+                        END
+                        ELSE
+                        BEGIN
+                            INSERT INTO PUREGOLD.dbo.ITEMS (UPC, SKU, Descr, Price, Type) 
+                            VALUES (@upc, @sku, @descr, @price, @type);
+                            SELECT 1;  -- Indicates inserted
+                        END";
 
-                        // Use ?? "" to safely handle nulls
-                        cmd.Parameters.AddWithValue("@upc", item.UPC ?? "");
-                        cmd.Parameters.AddWithValue("@sku", item.SKU ?? "");
-                        cmd.Parameters.AddWithValue("@descr", item.Description ?? "");
-                        cmd.Parameters.AddWithValue("@price", 1.0m); // Default to 1.0
-                        cmd.Parameters.AddWithValue("@type", "Standard Item"); // Default to Standard Item
+                        cmd.Parameters.Add("@upc", SqlDbType.VarChar, 50).Value = (object)item.UPC ?? string.Empty;
+                        cmd.Parameters.Add("@sku", SqlDbType.VarChar, 50).Value = (object)item.SKU ?? string.Empty;
+                        cmd.Parameters.Add("@descr", SqlDbType.VarChar, 255).Value = (object)item.Description ?? string.Empty;
+                        cmd.Parameters.Add("@price", SqlDbType.Decimal).Value = 1.0m;
+                        cmd.Parameters.Add("@type", SqlDbType.VarChar, 50).Value = "Standard Item";
 
-                        await cmd.ExecuteNonQueryAsync();
+                        var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                        int status = Convert.ToInt32(result);
+
+                        if (status == -1)
+                        {
+                            return (false, "Item already exists in the Masterfile.");
+                        }
+
                         return (true, "Successfully added to Masterfile!");
                     }
                 }
             }
             catch (Exception ex)
             {
+                ErrorLoggerService.LogException("ReportsService.AddToMasterfileAsync", ex);
                 return (false, $"Database error: {ex.Message}");
             }
         }

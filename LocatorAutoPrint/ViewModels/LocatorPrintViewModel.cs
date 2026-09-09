@@ -217,6 +217,8 @@ namespace LocatorAutoPrint.ViewModels
                 "v3.2\n• Added UI loading overlay during print to prevent double printing\n• Removed unnecessary modals for streamlined UI\n• User creation now syncs with AGING_DB automatically\n• Added tabbed filters on Countsheet List (Active, Unused, Inactive)\n• Fixed random UI freezing by optimizing data loading\n• Added 'Add to Masterfile' option on SKU Inquiry context menu\n\n" +
                 "v3.3\n• Combined user name fields and added IP Address tracking in DataGrid\n• Replaced INF PDF Export with direct printing capability\n• Auto clear fields after saving on edit locator\n• Streamlined UI by removing redundant Cancel buttons\n• Renamed 'Edited Qty' to 'Quantity' for clarity\n\n" +
                 "v3.3.1\n• Removed PDF Export module\n\n" +
+                "v3.3.2\n• Added logger\n\n" +
+                "v3.3.3\n• Fixed some bugs\n\n" +
                 "Developed by Jash (Jake Panlilio) - IT SF1 (722)\nZone 11 © 2026",
                 "About");
         }

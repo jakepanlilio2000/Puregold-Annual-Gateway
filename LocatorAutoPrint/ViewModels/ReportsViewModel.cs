@@ -1,7 +1,9 @@
-﻿using LocatorAutoPrint.Commands;
+﻿using System;
+using LocatorAutoPrint.Commands;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
-using Microsoft.Win32; 
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -81,13 +83,13 @@ namespace LocatorAutoPrint.ViewModels
             LoadStockCommand = new RelayCommand(async _ => await LoadStockAsync());
             SearchSkuCommand = new RelayCommand(async _ => await ExecuteSkuSearchAsync(), _ => !string.IsNullOrWhiteSpace(SkuSearchQuery));
             AddToMasterfileCommand = new RelayCommand(async _ => await AddToMasterfileAsync(), _ => SelectedSkuResult != null);
-            CopyUpcCommand = new RelayCommand(_ => CopyToClipboard("UPC"), _ => SelectedSkuResult != null);
-            CopySkuCommand = new RelayCommand(_ => CopyToClipboard("SKU"), _ => SelectedSkuResult != null);
-            CopyDescriptionCommand = new RelayCommand(_ => CopyToClipboard("Description"), _ => SelectedSkuResult != null);
-            CopyAllColumnsCommand = new RelayCommand(_ => CopyAllToClipboard(), _ => SelectedSkuResult != null);
+            CopyUpcCommand = new RelayCommand(async _ => await CopyToClipboard("UPC"), _ => SelectedSkuResult != null);
+            CopySkuCommand = new RelayCommand(async _ => await CopyToClipboard("SKU"), _ => SelectedSkuResult != null);
+            CopyDescriptionCommand = new RelayCommand(async _ => await CopyToClipboard("Description"), _ => SelectedSkuResult != null);
+            CopyAllColumnsCommand = new RelayCommand(async _ => await CopyAllToClipboard(), _ => SelectedSkuResult != null);
         }
 
-        private async System.Threading.Tasks.Task PrintInfAsync()
+        private async Task PrintInfAsync()
         {
             IsLoading = true;
             try
@@ -97,6 +99,8 @@ namespace LocatorAutoPrint.ViewModels
             }
             catch (System.Exception ex)
             {
+                ErrorLoggerService.LogException("ReportsViewModel.PrintInfAsync", ex, isTerminating: false);
+
                 MessageBox.Show($"Failed to print: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -105,7 +109,15 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
-        private void CopyToClipboard(string fieldName)
+        private async Task ShowCopyFeedbackMessage(string message)
+        {
+            CopyFeedbackMessage = message;
+            ShowCopyFeedback = true;
+            await System.Threading.Tasks.Task.Delay(2000);
+            ShowCopyFeedback = false;
+        }
+
+        private async Task CopyToClipboard(string fieldName)
         {
             var item = SelectedSkuResult;
             if (item == null) return;
@@ -122,48 +134,48 @@ namespace LocatorAutoPrint.ViewModels
             if (!string.IsNullOrEmpty(textToCopy))
             {
                 Clipboard.SetText(textToCopy);
-                ShowCopyFeedbackMessage($"Copied {fieldName} to clipboard!");
+                await ShowCopyFeedbackMessage($"Copied {fieldName} to clipboard!");
             }
         }
 
         private async Task AddToMasterfileAsync()
         {
+            if (SelectedSkuResult == null || IsLoading) return;
+
             IsLoading = true;
             try
             {
-                var result = await _reportsService.AddToMasterfileAsync(SelectedSkuResult);
+                var result = await Task.Run(() => _reportsService.AddToMasterfileAsync(SelectedSkuResult));
 
                 if (result.Success)
                 {
-                    ShowCopyFeedbackMessage(result.Message);
+                    await ShowCopyFeedbackMessage(result.Message);
                 }
                 else
                 {
                     MessageBox.Show(result.Message, "Notice", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("ReportsViewModel.AddToMasterfileAsync", ex);
+                MessageBox.Show($"Operation failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
             finally
             {
                 IsLoading = false;
             }
         }
-        private void CopyAllToClipboard()
+        private async Task CopyAllToClipboard()
         {
             var item = SelectedSkuResult;
             if (item == null) return;
 
             string allData = $"UPC: {item.UPC}\nSKU: {item.SKU}\nDescription: {item.Description}";
             Clipboard.SetText(allData);
-            ShowCopyFeedbackMessage("Copied all data to clipboard!");
+            await ShowCopyFeedbackMessage("Copied all data to clipboard!");
         }
 
-        private async void ShowCopyFeedbackMessage(string message)
-        {
-            CopyFeedbackMessage = message;
-            ShowCopyFeedback = true;
-            await System.Threading.Tasks.Task.Delay(2000);
-            ShowCopyFeedback = false;
-        }
         private bool _showCopyFeedback;
         public bool ShowCopyFeedback
         {

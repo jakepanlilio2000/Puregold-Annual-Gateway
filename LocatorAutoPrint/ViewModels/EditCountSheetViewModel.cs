@@ -1,9 +1,11 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using LocatorAutoPrint.Commands;
-using LocatorAutoPrint.Helpers; // Changed to use your CustomMessageBox
+using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
 
@@ -68,7 +70,6 @@ namespace LocatorAutoPrint.ViewModels
             }
         }
 
-        // NEW: Track if we are inserting a new record instead of updating an old one
         private bool _isAddMode;
         public bool IsAddMode
         {
@@ -84,8 +85,6 @@ namespace LocatorAutoPrint.ViewModels
         public ICommand CancelCommand { get; }
         public ICommand SearchItemCommand { get; }
         public ICommand PrintEditedCommand { get; }
-
-        // NEW: Add Record Command
         public ICommand AddRecordCommand { get; }
 
         public EditCountSheetViewModel(EditCountSheetService service, DatabaseService dbService, PrintService printService, ConfigService configService)
@@ -98,55 +97,66 @@ namespace LocatorAutoPrint.ViewModels
             LoadCommand = new RelayCommand(async _ => await LoadRecordAsync(), _ => !string.IsNullOrEmpty(SearchLocator) && SearchRecNo.HasValue && !IsProcessing);
             EditCommand = new RelayCommand(_ => IsEditMode = true, _ => CurrentRecord != null && !IsEditMode && !IsProcessing);
             CancelCommand = new RelayCommand(async _ => { IsEditMode = false; IsAddMode = false; await LoadRecordAsync(); }, _ => !IsProcessing);
-
-            // Locked Commands
             SaveCommand = new RelayCommand(async _ => await SaveRecordAsync(), _ => IsEditMode && CurrentRecord != null && !IsProcessing);
             SearchItemCommand = new RelayCommand(async param => await ExecuteItemSearchAsync(param as string), _ => IsEditMode && !IsProcessing);
             PrintEditedCommand = new RelayCommand(async _ => await ExecutePrintEditedAsync(), _ => !string.IsNullOrWhiteSpace(SearchLocator) && !IsProcessing);
             AddRecordCommand = new RelayCommand(async _ => await AddNewRecordAsync(), _ => !string.IsNullOrWhiteSpace(SearchLocator) && !IsEditMode && !IsProcessing);
         }
 
-        // NEW: Generates the blank record with an auto-incremented RecNo
-        private async System.Threading.Tasks.Task AddNewRecordAsync()
+        private async Task AddNewRecordAsync()
         {
-            int nextRecNo = await _service.GetNextRecordNumberAsync(SearchLocator);
-
-            CurrentRecord = new CountSheetEditModel
+            try
             {
-                SlotNo = SearchLocator,
-                RecNo = nextRecNo,
-                UPC = string.Empty,
-                SKU = string.Empty,
-                Descr = string.Empty,
-                OriginalQty = 0,
-                EditedQty = 0
-            };
+                int nextRecNo = await _service.GetNextRecordNumberAsync(SearchLocator);
 
-            IsAddMode = true;
-            IsEditMode = true;
+                CurrentRecord = new CountSheetEditModel
+                {
+                    SlotNo = SearchLocator,
+                    RecNo = nextRecNo,
+                    UPC = string.Empty,
+                    SKU = string.Empty,
+                    Descr = string.Empty,
+                    OriginalQty = 0,
+                    EditedQty = 0
+                };
 
-            // Clear out the search box so it visually matches the new RecNo
-            _searchRecNo = nextRecNo;
-            OnPropertyChanged(nameof(SearchRecNo));
+                IsAddMode = true;
+                IsEditMode = true;
+                _searchRecNo = nextRecNo;
+                OnPropertyChanged(nameof(SearchRecNo));
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("EditCountSheetViewModel.AddNewRecordAsync", ex);
+                CustomMessageBox.Show($"Failed to generate next record: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private async System.Threading.Tasks.Task LoadRecordAsync()
+        private async Task LoadRecordAsync()
         {
             if (string.IsNullOrEmpty(SearchLocator) || !SearchRecNo.HasValue) return;
 
-            var record = await _service.GetRecordAsync(SearchLocator, SearchRecNo.Value);
-            if (record == null)
+            try
             {
-                CurrentRecord = null;
-                return;
-            }
+                var record = await _service.GetRecordAsync(SearchLocator, SearchRecNo.Value);
+                if (record == null)
+                {
+                    CurrentRecord = null;
+                    return;
+                }
 
-            CurrentRecord = record;
-            IsEditMode = false;
-            IsAddMode = false;
+                CurrentRecord = record;
+                IsEditMode = false;
+                IsAddMode = false;
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("EditCountSheetViewModel.LoadRecordAsync", ex);
+                CustomMessageBox.Show($"Failed to load record: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private async System.Threading.Tasks.Task SaveRecordAsync()
+        private async Task SaveRecordAsync()
         {
             if (IsProcessing) return;
             IsProcessing = true;
@@ -168,10 +178,15 @@ namespace LocatorAutoPrint.ViewModels
                     CustomMessageBox.Show("Failed to save changes. Record may have been deleted.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("EditCountSheetViewModel.SaveRecordAsync", ex);
+                CustomMessageBox.Show($"Failed to save: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
             finally { IsProcessing = false; }
         }
 
-        private async System.Threading.Tasks.Task ExecuteItemSearchAsync(string triggerType = null)
+        private async Task ExecuteItemSearchAsync(string triggerType = null)
         {
             if (IsProcessing) return;
 
@@ -182,7 +197,6 @@ namespace LocatorAutoPrint.ViewModels
 
             if (string.IsNullOrWhiteSpace(keyword))
             {
-               
                 if (!isAuto) CustomMessageBox.Show("Please enter a UPC or SKU to search.", "Input Required", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -197,20 +211,22 @@ namespace LocatorAutoPrint.ViewModels
                     CurrentRecord.UPC = results.First().UPC;
                     CurrentRecord.SKU = results.First().SKU;
                     CurrentRecord.Descr = results.First().Description;
-
-                    
                     OnPropertyChanged(nameof(CurrentRecord));
                 }
                 else
                 {
-                    
                     if (!isAuto) CustomMessageBox.Show("Item not found in Masterfile.", "Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("EditCountSheetViewModel.ExecuteItemSearchAsync", ex);
+                if (!isAuto) CustomMessageBox.Show($"Search failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally { IsProcessing = false; }
         }
 
-        private async System.Threading.Tasks.Task ExecutePrintEditedAsync()
+        private async Task ExecutePrintEditedAsync()
         {
             if (IsProcessing) return;
             IsProcessing = true;
@@ -231,6 +247,11 @@ namespace LocatorAutoPrint.ViewModels
 
                 string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
                 await _printService.PrintEditedLocatorSheetAsync(locNo, storeName, summary);
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("EditCountSheetViewModel.ExecutePrintEditedAsync", ex);
+                CustomMessageBox.Show($"Print failed: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally { IsProcessing = false; }
         }
