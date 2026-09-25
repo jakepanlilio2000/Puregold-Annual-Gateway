@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # MaterialDesignThemes auto-extracted font resources
 LocatorAutoPrint/Resources/
+/LocatorAutoPrint/Production/Annual Gateway Installer/installer/Output/A&VG3.5.exe
+/LocatorAutoPrint/Production/Annual Gateway Installer/installer/Output/A&VGWSetup(netless).exe
+/LocatorAutoPrint/Production/Annual Gateway Installer/installer/Output/A&VGWSetup.exe
+/LocatorAutoPrint/Production/Annual Gateway Installer/Annual And Variance Gateway.exe
+/LocatorAutoPrint/Production/Annual Gateway Installer/NDP48-x86-x64-AllOS-ENU.exe
