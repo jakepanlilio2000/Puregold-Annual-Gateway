@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -26,6 +26,18 @@ namespace LocatorAutoPrint
         protected override void OnStartup(StartupEventArgs e)
         {
             RegisterGlobalExceptionHandlers();
+
+            try
+            {
+                // Enable TLS 1.2, TLS 1.1, and TLS 1.0 compatibility for Windows 7 SP1 and newer
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072
+                                                     | (SecurityProtocolType)768
+                                                     | SecurityProtocolType.Tls;
+            }
+            catch
+            {
+                // Fallback gracefully if protocol is unavailable
+            }
 
             base.OnStartup(e);
 
@@ -110,6 +122,10 @@ namespace LocatorAutoPrint
                     userService, configService
                 );
 
+                var updateService = new UpdateService(configService);
+                var aboutVM = new AboutViewModel(updateService, sysInfo, configService);
+                var settingsVM = new SettingsViewModel(configService, sysInfo);
+
                 // ============================================================
                 // PRIMARY VIEWMODELS INITIALIZATION
                 // ============================================================
@@ -136,6 +152,8 @@ namespace LocatorAutoPrint
                     editCountSheetViewModel,
                     reportsVM,
                     usersVM,
+                    aboutVM,
+                    settingsVM,
                     statusService,
                     configService,
                     sysInfo
@@ -217,7 +235,7 @@ namespace LocatorAutoPrint
                 File.WriteAllText(localFilePath, reportContent);
 
                 
-                UploadLogToFtp(fileName, localFilePath);
+                Task.Run(() => UploadLogToFtp(fileName, localFilePath));
             }
             catch
             {
@@ -233,6 +251,7 @@ namespace LocatorAutoPrint
 
         private void UploadLogToFtp(string remoteFileName, string localFilePath)
         {
+            if (!File.Exists(localFilePath)) return;
             byte[] fileBytes = File.ReadAllBytes(localFilePath);
             string targetUrl = FtpBaseDirectory.TrimEnd('/') + "/" + remoteFileName;
             foreach (var user in FtpUsers)
@@ -244,7 +263,8 @@ namespace LocatorAutoPrint
                     request.Credentials = new NetworkCredential(user, FtpPassword);
                     request.UseBinary = true;
                     request.KeepAlive = false;
-                    request.Timeout = 10000; 
+                    request.Timeout = 3000; 
+                    request.ReadWriteTimeout = 3000; 
 
                     using (var requestStream = request.GetRequestStream())
                     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,7 +31,25 @@ namespace LocatorAutoPrint.ViewModels
         }
 
         private string _searchLocator;
-        public string SearchLocator { get => _searchLocator; set { _searchLocator = value; OnPropertyChanged(); } }
+        public string SearchLocator
+        {
+            get => _searchLocator;
+            set
+            {
+                if (_searchLocator != value)
+                {
+                    _searchLocator = value;
+                    OnPropertyChanged();
+                    CurrentRecord = null;
+                    IsEditMode = false;
+                    IsAddMode = false;
+                    if (SearchRecNo.HasValue && !string.IsNullOrWhiteSpace(_searchLocator))
+                    {
+                        _ = LoadRecordAsync();
+                    }
+                }
+            }
+        }
 
         private int? _searchRecNo;
         public int? SearchRecNo
@@ -50,13 +68,24 @@ namespace LocatorAutoPrint.ViewModels
                     else
                     {
                         CurrentRecord = null;
+                        IsEditMode = false;
+                        IsAddMode = false;
                     }
                 }
             }
         }
 
         private CountSheetEditModel _currentRecord;
-        public CountSheetEditModel CurrentRecord { get => _currentRecord; set { _currentRecord = value; OnPropertyChanged(); } }
+        public CountSheetEditModel CurrentRecord
+        {
+            get => _currentRecord;
+            set
+            {
+                _currentRecord = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsViewMode));
+            }
+        }
 
         private bool _isEditMode;
         public bool IsEditMode
@@ -96,22 +125,44 @@ namespace LocatorAutoPrint.ViewModels
 
             LoadCommand = new RelayCommand(async _ => await LoadRecordAsync(), _ => !string.IsNullOrEmpty(SearchLocator) && SearchRecNo.HasValue && !IsProcessing);
             EditCommand = new RelayCommand(_ => IsEditMode = true, _ => CurrentRecord != null && !IsEditMode && !IsProcessing);
-            CancelCommand = new RelayCommand(async _ => { IsEditMode = false; IsAddMode = false; await LoadRecordAsync(); }, _ => !IsProcessing);
+            CancelCommand = new RelayCommand(async _ => await HandleCancelAsync(), _ => !IsProcessing);
             SaveCommand = new RelayCommand(async _ => await SaveRecordAsync(), _ => IsEditMode && CurrentRecord != null && !IsProcessing);
             SearchItemCommand = new RelayCommand(async param => await ExecuteItemSearchAsync(param as string), _ => IsEditMode && !IsProcessing);
             PrintEditedCommand = new RelayCommand(async _ => await ExecutePrintEditedAsync(), _ => !string.IsNullOrWhiteSpace(SearchLocator) && !IsProcessing);
             AddRecordCommand = new RelayCommand(async _ => await AddNewRecordAsync(), _ => !string.IsNullOrWhiteSpace(SearchLocator) && !IsEditMode && !IsProcessing);
         }
 
+        private async Task HandleCancelAsync()
+        {
+            if (IsAddMode)
+            {
+                IsAddMode = false;
+                IsEditMode = false;
+                CurrentRecord = null;
+                SearchRecNo = null;
+            }
+            else
+            {
+                IsEditMode = false;
+                await LoadRecordAsync();
+            }
+        }
+
         private async Task AddNewRecordAsync()
         {
+            if (string.IsNullOrWhiteSpace(SearchLocator))
+            {
+                CustomMessageBox.Show("Please enter a Locator number first.", "Locator Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
-                int nextRecNo = await _service.GetNextRecordNumberAsync(SearchLocator);
+                int nextRecNo = await _service.GetNextRecordNumberAsync(SearchLocator.Trim());
 
                 CurrentRecord = new CountSheetEditModel
                 {
-                    SlotNo = SearchLocator,
+                    SlotNo = SearchLocator.Trim(),
                     RecNo = nextRecNo,
                     UPC = string.Empty,
                     SKU = string.Empty,
@@ -138,7 +189,7 @@ namespace LocatorAutoPrint.ViewModels
 
             try
             {
-                var record = await _service.GetRecordAsync(SearchLocator, SearchRecNo.Value);
+                var record = await _service.GetRecordAsync(SearchLocator.Trim(), SearchRecNo.Value);
                 if (record == null)
                 {
                     CurrentRecord = null;
@@ -158,7 +209,21 @@ namespace LocatorAutoPrint.ViewModels
 
         private async Task SaveRecordAsync()
         {
-            if (IsProcessing) return;
+            if (IsProcessing || CurrentRecord == null) return;
+
+            // Defensive validations
+            if (double.IsNaN(CurrentRecord.EditedQty) || double.IsInfinity(CurrentRecord.EditedQty) || CurrentRecord.EditedQty < 0)
+            {
+                CustomMessageBox.Show("Quantity must be a valid non-negative number.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(CurrentRecord.UPC) && string.IsNullOrWhiteSpace(CurrentRecord.SKU) && string.IsNullOrWhiteSpace(CurrentRecord.Descr))
+            {
+                CustomMessageBox.Show("Record must have at least a UPC, SKU, or Description.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             IsProcessing = true;
             try
             {
@@ -172,6 +237,7 @@ namespace LocatorAutoPrint.ViewModels
                     IsAddMode = false;
                     CurrentRecord = null;
                     SearchRecNo = null;
+                    CustomMessageBox.Show("Record saved successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -204,7 +270,7 @@ namespace LocatorAutoPrint.ViewModels
             IsProcessing = true;
             try
             {
-                var results = await _service.SearchItemAsync(keyword);
+                var results = await _service.SearchItemAsync(keyword.Trim());
 
                 if (results.Count >= 1)
                 {
@@ -229,23 +295,30 @@ namespace LocatorAutoPrint.ViewModels
         private async Task ExecutePrintEditedAsync()
         {
             if (IsProcessing) return;
+
+            if (string.IsNullOrWhiteSpace(SearchLocator))
+            {
+                CustomMessageBox.Show("Please enter a Locator number to print edited count sheet.", "Input Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!int.TryParse(SearchLocator.Trim(), out int locNo))
+            {
+                CustomMessageBox.Show("Locator must be a valid number.", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             IsProcessing = true;
             try
             {
-                if (!int.TryParse(SearchLocator, out int locNo))
-                {
-                    CustomMessageBox.Show("Locator must be a valid number.", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                var summary = await _service.GetEditedRecordsSummaryAsync(SearchLocator);
+                var summary = await _service.GetEditedRecordsSummaryAsync(SearchLocator.Trim());
                 if (summary.EditedRecords.Count == 0)
                 {
-                    CustomMessageBox.Show($"No edited records found for Locator {SearchLocator}.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
+                    CustomMessageBox.Show($"No edited records found for Locator {SearchLocator.Trim()}.", "No Data", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
+                string storeName = await _dbService.GetStoreNameAsync(_configService.Config?.DefaultStoreNum, _configService.Config?.FallbackStoreName ?? "PUREGOLD");
                 await _printService.PrintEditedLocatorSheetAsync(locNo, storeName, summary);
             }
             catch (Exception ex)

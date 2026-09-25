@@ -1,4 +1,4 @@
-﻿namespace LocatorAutoPrint.Models
+namespace LocatorAutoPrint.Models
 {
     public class StockValueModel
     {

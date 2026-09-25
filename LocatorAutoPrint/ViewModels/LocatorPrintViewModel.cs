@@ -1,4 +1,4 @@
-﻿using LocatorAutoPrint.Commands;
+using LocatorAutoPrint.Commands;
 using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 using LocatorAutoPrint.Services;
@@ -19,6 +19,7 @@ namespace LocatorAutoPrint.ViewModels
         private readonly RestoreService _restoreService;
         private readonly DispatcherTimer _timer;
         private bool _hasShownProgressError = false;
+        private bool _isLoadingStats = false;
 
         private bool _isPrinting;
         public bool IsPrinting
@@ -71,14 +72,17 @@ namespace LocatorAutoPrint.ViewModels
             _restoreService = restoreService;
 
             PrintCommand = new RelayCommand(async _ => await ExecutePrintAsync(), _ => !IsPrinting);
-            RefreshCommand = new RelayCommand(async _ => await LoadStatsAsync());
-            PrintCommand = new RelayCommand(async _ => await ExecutePrintAsync());
+            RefreshCommand = new RelayCommand(async _ => await LoadStatsAsync(), _ => !_isLoadingStats);
             CloseCommand = new RelayCommand(_ => Application.Current.Shutdown());
 
-            ShowGuideCommand = new RelayCommand(_ => CustomMessageBox.Show("Enter locator numbers separated by periods (e.g., 1.2.3) or ranges (e.g., 5-10).", "User Guide"));
+            ShowGuideCommand = new RelayCommand(_ => CustomMessageBox.Show("Enter locator numbers separated by commas (e.g., 1,2,3 or 34,87,100). No other formats are supported.", "User Guide", MessageBoxButton.OK, MessageBoxImage.Information));
 
             ShowHowToCommand = new RelayCommand(_ => {
                 var win = new Views.Modals.HowToUseWindow();
+                if (Application.Current != null && Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    win.Owner = Application.Current.MainWindow;
+                }
                 win.ShowDialog();
             });
 
@@ -86,26 +90,37 @@ namespace LocatorAutoPrint.ViewModels
 
             OpenCountsheetListCommand = new RelayCommand(_ => {
                 var win = new Views.Modals.CountsheetListWindow { DataContext = _maintenanceVM };
+                if (Application.Current != null && Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    win.Owner = Application.Current.MainWindow;
+                }
                 _maintenanceVM.LoadCountsheetListCommand.Execute(null);
                 win.ShowDialog();
             });
 
             OpenPrelocMaintenanceCommand = new RelayCommand(_ => {
                 var win = new Views.Modals.PrelocMaintenanceWindow { DataContext = _maintenanceVM };
+                if (Application.Current != null && Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    win.Owner = Application.Current.MainWindow;
+                }
                 _maintenanceVM.LoadPrelocListCommand.Execute(null);
                 win.ShowDialog();
             });
 
             RestoreLocatorCommand = new RelayCommand(async _ => {
-
                 var dialog = new Views.Modals.InputDialogWindow("Locator # to restore from backup file:", "Restore Locator");
+                if (Application.Current != null && Application.Current.MainWindow != null && Application.Current.MainWindow.IsVisible)
+                {
+                    dialog.Owner = Application.Current.MainWindow;
+                }
 
                 if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.InputText))
                     return;
 
                 string input = dialog.InputText.Trim();
 
-                if (CustomMessageBox.Show($"This will REPLACE ALL EXISTING RECORDS for SlotNo {input}. Continue?", "CRITICAL WARNING", MessageBoxButton.YesNo, MessageBoxImage.Error) == MessageBoxResult.Yes)
+                if (CustomMessageBox.Show($"This will REPLACE ALL EXISTING RECORDS for SlotNo {input}. Continue?", "CRITICAL WARNING", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     var result = await _restoreService.RestoreLocatorAsync(input);
                     CustomMessageBox.Show(result.Message, result.Success ? "Restore Complete" : "Restore Failed", MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
@@ -121,38 +136,58 @@ namespace LocatorAutoPrint.ViewModels
 
         private async System.Threading.Tasks.Task LoadStatsAsync()
         {
-            var newStats = await _dbService.GetProgressPercentagesAsync();
+            if (_isLoadingStats) return;
+            _isLoadingStats = true;
 
-            if (newStats.HasError && !_hasShownProgressError)
+            try
             {
-                _hasShownProgressError = true;
-                CustomMessageBox.Show($"Live Progress failed to update due to a database error:\n\n{newStats.ErrorMessage}", "Progress Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            else if (!newStats.HasError)
-            {
-                _hasShownProgressError = false;
-            }
+                var newStats = await _dbService.GetProgressPercentagesAsync();
 
-            if (!newStats.HasError)
+                if (newStats.HasError && !_hasShownProgressError)
+                {
+                    _hasShownProgressError = true;
+                    CustomMessageBox.Show($"Live Progress failed to update due to a database error:\n\n{newStats.ErrorMessage}", "Progress Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                else if (!newStats.HasError)
+                {
+                    _hasShownProgressError = false;
+                }
+
+                if (!newStats.HasError)
+                {
+                    Stats = newStats;
+                }
+            }
+            finally
             {
-                Stats = newStats;
+                _isLoadingStats = false;
             }
         }
 
         private async System.Threading.Tasks.Task ExecutePrintAsync()
         {
             if (IsPrinting) return;
-            IsPrinting = true;
 
+            if (string.IsNullOrWhiteSpace(LocatorInput))
+            {
+                CustomMessageBox.Show("Please enter one or more locator numbers to print.", "Input Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var locators = LocatorParser.Parse(LocatorInput);
+            if (locators.Count == 0)
+            {
+                CustomMessageBox.Show("No valid locator numbers found. Locator format is only digits such as 1,2,3 or 34,87,100 (no other formats).", "Invalid Input", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            IsPrinting = true;
             try
             {
-                var locators = LocatorParser.Parse(LocatorInput);
-                if (locators.Count == 0) return;
-
                 var errorLog = new List<string>();
                 int successCount = 0;
 
-                string storeName = await _dbService.GetStoreNameAsync(_configService.Config.DefaultStoreNum, _configService.Config.FallbackStoreName);
+                string storeName = await _dbService.GetStoreNameAsync(_configService.Config?.DefaultStoreNum, _configService.Config?.FallbackStoreName ?? "PUREGOLD");
 
                 foreach (var locatorNo in locators)
                 {
@@ -185,6 +220,7 @@ namespace LocatorAutoPrint.ViewModels
                     }
                     catch (Exception ex)
                     {
+                        ErrorLoggerService.LogException($"LocatorPrintViewModel.ExecutePrintAsync(Locator {locatorNo})", ex);
                         errorLog.Add($"Locator {locatorNo}: ERROR - {ex.Message}");
                     }
                 }
@@ -199,6 +235,11 @@ namespace LocatorAutoPrint.ViewModels
 
                     CustomMessageBox.Show(summary, "Print Job Issues", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("LocatorPrintViewModel.ExecutePrintAsync", ex);
+                CustomMessageBox.Show($"Failed to execute print job: {ex.Message}", "Print Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -216,11 +257,10 @@ namespace LocatorAutoPrint.ViewModels
                 "v3.1\n• Corrected percentage accuracy\n• Fixed Enter key behavior for printing locators\n• Fixed masterfile lookups when editing locators\n• Added batch print validation and error logging\n• Added status column on users tab that pings the device IP\n\n" +
                 "v3.2\n• Added UI loading overlay during print to prevent double printing\n• Removed unnecessary modals for streamlined UI\n• User creation now syncs with AGING_DB automatically\n• Added tabbed filters on Countsheet List (Active, Unused, Inactive)\n• Fixed random UI freezing by optimizing data loading\n• Added 'Add to Masterfile' option on SKU Inquiry context menu\n\n" +
                 "v3.3\n• Combined user name fields and added IP Address tracking in DataGrid\n• Replaced INF PDF Export with direct printing capability\n• Auto clear fields after saving on edit locator\n• Streamlined UI by removing redundant Cancel buttons\n• Renamed 'Edited Qty' to 'Quantity' for clarity\n\n" +
-                "v3.3.1\n• Removed PDF Export module\n\n" +
-                "v3.3.2\n• Added logger\n\n" +
-                "v3.3.3\n• Fixed some bugs\n\n" +
+                "v3.4 (Consolidated Rollup)\n• Error logging telemetry & non-blocking FTP crash reports\n• Fixed critical quantity zeroing defect in countsheet restore\n• Removed legacy PDF export modules; direct printer integration\n• Safe DBNull reader safeguards and boundary validations\n\n" +
+                "v3.5 (Current Release)\n• Puregold Brand Palette overhaul (Emerald Green #006837 & Gold #FFD200)\n• Dedicated 'About' navigation tab with System Information & IT Support\n• Automated Intranet FTP Updater querying A&VG repository (192.168.200.177)\n• Modern high-density scrollable DataGrids within locked 565x565 window\n\n" +
                 "Developed by Jash (Jake Panlilio) - IT SF1 (722)\nZone 11 © 2026",
-                "About");
+                "About Puregold Annual Gateway v3.5", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

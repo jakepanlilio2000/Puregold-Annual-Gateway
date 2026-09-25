@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -11,9 +11,9 @@ namespace LocatorAutoPrint.Services
         private const string FtpBaseDirectory = "ftp://192.168.200.177/toho/(722)San_Fernando/Others/Annual%20Gateway/logs/";
         private const string FtpPassword = "pw@1234";
         private static readonly string[] FtpUsers = {
-            @"puregold\1",  @"puregold\2",  @"puregold\3",  @"puregold\4",
-            @"puregold\5",  @"puregold\6",  @"puregold\7",  @"puregold\8",
-            @"puregold\9",  @"puregold\10", @"puregold\11", @"puregold\12"
+            @"puregold\ftp1",  @"puregold\ftp2",  @"puregold\ftp3",  @"puregold\ftp4",
+            @"puregold\ftp5",  @"puregold\ftp6",  @"puregold\ftp7",  @"puregold\ftp8",
+            @"puregold\ftp9",  @"puregold\ftp10", @"puregold\ftp11", @"puregold\ftp12"
         };
 
         public static void LogException(string context, Exception ex, bool isTerminating = false)
@@ -48,45 +48,54 @@ namespace LocatorAutoPrint.Services
                 string localFilePath = Path.Combine(localDirectory, fileName);
                 File.WriteAllText(localFilePath, sb.ToString());
 
-               
+                // Fire-and-forget non-blocking upload with low timeout
                 Task.Run(() => UploadLogToFtp(fileName, localFilePath));
             }
             catch
             {
-               
+                // Never allow telemetry logging itself to crash the application
             }
         }
 
         private static void UploadLogToFtp(string remoteFileName, string localFilePath)
         {
-            byte[] fileBytes = File.ReadAllBytes(localFilePath);
-            string targetUrl = FtpBaseDirectory.TrimEnd('/') + "/" + remoteFileName;
-
-            foreach (var user in FtpUsers)
+            try
             {
-                try
+                if (!File.Exists(localFilePath)) return;
+                byte[] fileBytes = File.ReadAllBytes(localFilePath);
+                string targetUrl = FtpBaseDirectory.TrimEnd('/') + "/" + remoteFileName;
+
+                foreach (var user in FtpUsers)
                 {
-                    var request = (FtpWebRequest)WebRequest.Create(targetUrl);
-                    request.Method = WebRequestMethods.Ftp.UploadFile;
-                    request.Credentials = new NetworkCredential(user, FtpPassword);
-                    request.UseBinary = true;
-                    request.KeepAlive = false;
-                    request.Timeout = 10000;
-
-                    using (var requestStream = request.GetRequestStream())
+                    try
                     {
-                        requestStream.Write(fileBytes, 0, fileBytes.Length);
+                        var request = (FtpWebRequest)WebRequest.Create(targetUrl);
+                        request.Method = WebRequestMethods.Ftp.UploadFile;
+                        request.Credentials = new NetworkCredential(user, FtpPassword);
+                        request.UseBinary = true;
+                        request.KeepAlive = false;
+                        request.Timeout = 3000;
+                        request.ReadWriteTimeout = 3000;
+
+                        using (var requestStream = request.GetRequestStream())
+                        {
+                            requestStream.Write(fileBytes, 0, fileBytes.Length);
+                        }
+
+                        using (var response = (FtpWebResponse)request.GetResponse())
+                        {
+                            return; 
+                        }
                     }
-
-                    using (var response = (FtpWebResponse)request.GetResponse())
+                    catch
                     {
-                        return; 
+                        continue;
                     }
                 }
-                catch
-                {
-                    continue;
-                }
+            }
+            catch
+            {
+                // Silent fail for network background upload
             }
         }
     }

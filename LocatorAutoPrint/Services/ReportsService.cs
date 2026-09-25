@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 
 namespace LocatorAutoPrint.Services
@@ -24,7 +25,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandTimeout = 15;
+                    cmd.CommandTimeout = 20;
                     cmd.CommandText = @"
                 SELECT SlotNo, RecNo, SKU, UPC, Descr, Qty 
                 FROM PUREGOLD.dbo.COUNTSHEET WITH (NOLOCK)
@@ -37,12 +38,12 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new InfReportModel
                             {
-                                SlotNo = reader["SlotNo"].ToString(),
-                                RecNo = Convert.ToInt32(reader["RecNo"]),
-                                SKU = Convert.ToDecimal(reader["SKU"]).ToString("0"),
-                                UPC = reader["UPC"].ToString(),
-                                Descr = reader["Descr"].ToString(),
-                                Qty = Convert.ToDouble(reader["Qty"])
+                                SlotNo = reader.GetStringSafe("SlotNo"),
+                                RecNo = reader.GetInt32Safe("RecNo"),
+                                SKU = reader.GetDecimalStringSafe("SKU", "0", ""),
+                                UPC = reader.GetStringSafe("UPC"),
+                                Descr = reader.GetStringSafe("Descr"),
+                                Qty = reader.GetDoubleSafe("Qty")
                             });
                         }
                     }
@@ -59,7 +60,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandTimeout = 15;
+                    cmd.CommandTimeout = 20;
                     cmd.CommandText = @"
                 SELECT c.SlotNo, COUNT(c.RecNo) as RecordCount, SUM(c.EditedQty) as TotalQty, 
                        COUNT(DISTINCT c.SKU) as SkuCount, p.remarks as Remarks
@@ -74,11 +75,11 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new SummaryReportModel
                             {
-                                SlotNo = reader["SlotNo"].ToString(),
-                                RecordCount = Convert.ToInt32(reader["RecordCount"]),
-                                TotalQty = Convert.ToDouble(reader["TotalQty"]),
-                                SkuCount = Convert.ToInt32(reader["SkuCount"]),
-                                Remarks = reader["Remarks"].ToString()
+                                SlotNo = reader.GetStringSafe("SlotNo"),
+                                RecordCount = reader.GetInt32Safe("RecordCount"),
+                                TotalQty = reader.GetDoubleSafe("TotalQty"),
+                                SkuCount = reader.GetInt32Safe("SkuCount"),
+                                Remarks = reader.GetStringSafe("Remarks")
                             });
                         }
                     }
@@ -95,15 +96,17 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd1 = conn.CreateCommand())
                 {
-                    cmd1.CommandTimeout = 10;
+                    cmd1.CommandTimeout = 15;
                     cmd1.CommandText = "SELECT COUNT(SlotNo) FROM PUREGOLD.dbo.LOCATOR WITH (NOLOCK) WHERE InUse = 1 AND Closed = 0";
-                    kpis.LoadedLocators = Convert.ToInt32(await cmd1.ExecuteScalarAsync().ConfigureAwait(false));
+                    var val1 = await cmd1.ExecuteScalarAsync().ConfigureAwait(false);
+                    kpis.LoadedLocators = val1 != null && val1 != DBNull.Value ? Convert.ToInt32(val1) : 0;
                 }
                 using (var cmd2 = conn.CreateCommand())
                 {
-                    cmd2.CommandTimeout = 10;
+                    cmd2.CommandTimeout = 15;
                     cmd2.CommandText = "SELECT COUNT(DISTINCT c.SlotNo) FROM PUREGOLD.dbo.COUNTSHEET c WITH (NOLOCK) JOIN PUREGOLD.dbo.LOCATOR l WITH (NOLOCK) ON c.SlotNo = l.SlotNo WHERE l.Closed = 0";
-                    kpis.PreCounts = Convert.ToInt32(await cmd2.ExecuteScalarAsync().ConfigureAwait(false));
+                    var val2 = await cmd2.ExecuteScalarAsync().ConfigureAwait(false);
+                    kpis.PreCounts = val2 != null && val2 != DBNull.Value ? Convert.ToInt32(val2) : 0;
                 }
             }
             return kpis;
@@ -117,7 +120,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandTimeout = 15;
+                    cmd.CommandTimeout = 20;
                     cmd.CommandText = @"
                 SELECT p.SlotNo, p.Name, p.stocklocation as Location
                 FROM PUREGOLD.dbo.PRELOC p WITH (NOLOCK)
@@ -131,9 +134,9 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new UnloadedLocatorModel
                             {
-                                SlotNo = reader["SlotNo"].ToString(),
-                                Name = reader["Name"].ToString(),
-                                Location = reader["Location"].ToString()
+                                SlotNo = reader.GetStringSafe("SlotNo"),
+                                Name = reader.GetStringSafe("Name"),
+                                Location = reader.GetStringSafe("Location")
                             });
                         }
                     }
@@ -150,7 +153,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandTimeout = 15;
+                    cmd.CommandTimeout = 20;
                     cmd.CommandText = "SELECT SlotNo, Name, aisle, bay, bayname, stocklocation FROM PUREGOLD.dbo.PRELOC WITH (NOLOCK)";
                     using (var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
                     {
@@ -158,12 +161,12 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new LocatorLocationModel
                             {
-                                SlotNo = reader["SlotNo"].ToString(),
-                                Name = reader["Name"].ToString(),
-                                Aisle = reader["aisle"].ToString(),
-                                Bay = reader["bay"].ToString(),
-                                BayName = reader["bayname"].ToString(),
-                                StockLocation = reader["stocklocation"].ToString()
+                                SlotNo = reader.GetStringSafe("SlotNo"),
+                                Name = reader.GetStringSafe("Name"),
+                                Aisle = reader.GetStringSafe("aisle"),
+                                Bay = reader.GetStringSafe("bay"),
+                                BayName = reader.GetStringSafe("bayname"),
+                                StockLocation = reader.GetStringSafe("stocklocation")
                             });
                         }
                     }
@@ -182,7 +185,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync().ConfigureAwait(false);
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandTimeout = 15;
+                    cmd.CommandTimeout = 20;
                     cmd.CommandText = @"
                         SELECT cupc, sku, citem 
                         FROM exclusivesdb.dbo.TBLpricechk WITH (NOLOCK)
@@ -196,9 +199,9 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new ItemLookupResult
                             {
-                                UPC = reader["cupc"].ToString(),
-                                SKU = reader["sku"] != DBNull.Value ? Convert.ToDecimal(reader["sku"]).ToString("0") : "",
-                                Description = reader["citem"].ToString()
+                                UPC = reader.GetStringSafe("cupc"),
+                                SKU = reader.GetDecimalStringSafe("sku", "0", ""),
+                                Description = reader.GetStringSafe("citem")
                             });
                         }
                     }
@@ -210,6 +213,10 @@ namespace LocatorAutoPrint.Services
         public async Task<(bool Success, string Message)> AddToMasterfileAsync(ItemLookupResult item)
         {
             if (item == null) return (false, "No item selected.");
+            if (string.IsNullOrWhiteSpace(item.UPC) && string.IsNullOrWhiteSpace(item.SKU))
+            {
+                return (false, "Cannot add item to masterfile without a valid UPC or SKU.");
+            }
 
             try
             {
@@ -219,7 +226,7 @@ namespace LocatorAutoPrint.Services
 
                     using (var cmd = conn.CreateCommand())
                     {
-                        cmd.CommandTimeout = 15;
+                        cmd.CommandTimeout = 20;
                         cmd.CommandText = @"
                         IF EXISTS (SELECT 1 FROM PUREGOLD.dbo.ITEMS WITH (NOLOCK) WHERE UPC = @upc)
                         BEGIN
@@ -232,9 +239,9 @@ namespace LocatorAutoPrint.Services
                             SELECT 1;  -- Indicates inserted
                         END";
 
-                        cmd.Parameters.Add("@upc", SqlDbType.VarChar, 50).Value = (object)item.UPC ?? string.Empty;
-                        cmd.Parameters.Add("@sku", SqlDbType.VarChar, 50).Value = (object)item.SKU ?? string.Empty;
-                        cmd.Parameters.Add("@descr", SqlDbType.VarChar, 255).Value = (object)item.Description ?? string.Empty;
+                        cmd.Parameters.Add("@upc", SqlDbType.VarChar, 50).Value = (object)(item.UPC ?? string.Empty).Trim();
+                        cmd.Parameters.Add("@sku", SqlDbType.VarChar, 50).Value = (object)(item.SKU ?? string.Empty).Trim();
+                        cmd.Parameters.Add("@descr", SqlDbType.VarChar, 255).Value = (object)(item.Description ?? string.Empty).Trim();
                         cmd.Parameters.Add("@price", SqlDbType.Decimal).Value = 1.0m;
                         cmd.Parameters.Add("@type", SqlDbType.VarChar, 50).Value = "Standard Item";
 

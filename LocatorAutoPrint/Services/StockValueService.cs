@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 
 namespace LocatorAutoPrint.Services
@@ -23,6 +24,7 @@ namespace LocatorAutoPrint.Services
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
+                    cmd.CommandTimeout = 25;
                     cmd.CommandText = "SELECT Sku, Description, [On Hand], [Unit Ave Cost], [STOCK AMT] FROM PUREGOLD.dbo.StockValue";
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -30,11 +32,11 @@ namespace LocatorAutoPrint.Services
                         {
                             results.Add(new StockValueModel
                             {
-                                Sku = reader["Sku"].ToString(),
-                                Description = reader["Description"].ToString(),
-                                OnHand = reader["On Hand"] != DBNull.Value ? Convert.ToDouble(reader["On Hand"]) : 0,
-                                UnitAveCost = reader["Unit Ave Cost"] != DBNull.Value ? Convert.ToDouble(reader["Unit Ave Cost"]) : 0,
-                                StockAmt = reader["STOCK AMT"].ToString()
+                                Sku = reader.GetStringSafe("Sku"),
+                                Description = reader.GetStringSafe("Description"),
+                                OnHand = reader.GetDoubleSafe("On Hand"),
+                                UnitAveCost = reader.GetDoubleSafe("Unit Ave Cost"),
+                                StockAmt = reader.GetStringSafe("STOCK AMT")
                             });
                         }
                     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -238,44 +238,47 @@ namespace LocatorAutoPrint.ViewModels
                 }
                 else
                 {
-                    MessageBox.Show(result.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    CustomMessageBox.Show(result.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
                 ErrorLoggerService.LogException("LocatorMaintenanceViewModel.AddPrelocAsync", ex);
-                MessageBox.Show($"Error adding preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show($"Error adding preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private async Task EditPrelocAsync()
         {
+            if (SelectedPreloc == null) return;
             try
             {
                 await _service.UpdatePrelocAsync(SelectedPreloc.SlotNo, SelectedPreloc.Name);
-                MessageBox.Show("Locator updated.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                CustomMessageBox.Show("Locator updated successfully.", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 ErrorLoggerService.LogException("LocatorMaintenanceViewModel.EditPrelocAsync", ex);
-                MessageBox.Show($"Error updating preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show($"Error updating preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private async Task DeletePrelocAsync()
         {
+            if (SelectedPreloc == null) return;
             try
             {
-                if (MessageBox.Show($"Are you sure you want to delete {SelectedPreloc.SlotNo}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                if (CustomMessageBox.Show($"Are you sure you want to delete locator {SelectedPreloc.SlotNo}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     await _service.DeletePrelocAsync(SelectedPreloc.SlotNo);
                     await LoadPrelocsAsync();
+                    CustomMessageBox.Show("Locator deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
                 ErrorLoggerService.LogException("LocatorMaintenanceViewModel.DeletePrelocAsync", ex);
-                MessageBox.Show($"Error deleting preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                CustomMessageBox.Show($"Error deleting preloc: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

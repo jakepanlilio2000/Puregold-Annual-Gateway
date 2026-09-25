@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Threading.Tasks;
+using LocatorAutoPrint.Helpers;
 using LocatorAutoPrint.Models;
 
 namespace LocatorAutoPrint.Services
@@ -11,8 +12,6 @@ namespace LocatorAutoPrint.Services
     {
         private readonly string _connectionString;
         private readonly string _appBaseDir;
-        bool hasStockLocation = false;
-
 
         public DatabaseService(string connectionString, string appBaseDir)
         {
@@ -37,8 +36,9 @@ namespace LocatorAutoPrint.Services
                         hasStockLocation = (result != null);
                     }
                     string locationColumnLogic = hasStockLocation
-                    ? "ISNULL(NULLIF(LTRIM(RTRIM(pre.stocklocation)), ''), pre.bayname)"
-                    : "pre.bayname";
+                        ? "ISNULL(NULLIF(LTRIM(RTRIM(pre.stocklocation)), ''), pre.bayname)"
+                        : "pre.bayname";
+
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = $@"
@@ -64,12 +64,12 @@ namespace LocatorAutoPrint.Services
                         {
                             while (await reader.ReadAsync())
                             {
-                                string loc = reader["Location"] != DBNull.Value ? reader["Location"].ToString().ToLower() : "";
-                                string stockloc = reader["stocklocation"] != DBNull.Value ? reader["stocklocation"].ToString().ToLower() : "";
+                                string loc = reader.GetStringSafe("Location").ToLower();
+                                string stockloc = reader.GetStringSafe("stocklocation").ToLower();
 
-                                double comp = reader["CompletedBays"] != DBNull.Value ? Convert.ToDouble(reader["CompletedBays"]) : 0;
-                                double cancel = reader["CancelledBays"] != DBNull.Value ? Convert.ToDouble(reader["CancelledBays"]) : 0;
-                                double total = reader["TotalBays"] != DBNull.Value ? Convert.ToDouble(reader["TotalBays"]) : 0;
+                                double comp = reader.GetDoubleSafe("CompletedBays");
+                                double cancel = reader.GetDoubleSafe("CancelledBays");
+                                double total = reader.GetDoubleSafe("TotalBays");
 
                                 if (loc.Contains("selling"))
                                 {
@@ -86,7 +86,6 @@ namespace LocatorAutoPrint.Services
                                         stats.Selling.Total += total;
                                     }
                                 }
-                              
                                 else if (loc.Contains("warehouse") || loc.Contains("receiving") || stockloc.Contains("receiving"))
                                 {
                                     stats.Warehouse.Comp += comp;
@@ -94,7 +93,6 @@ namespace LocatorAutoPrint.Services
                                     stats.Warehouse.Total += total;
                                 }
 
-                               
                                 stats.Overall.Comp += comp;
                                 stats.Overall.Cancel += cancel;
                                 stats.Overall.Total += total;
@@ -106,6 +104,7 @@ namespace LocatorAutoPrint.Services
             catch (Exception ex)
             {
                 stats.ErrorMessage = ex.Message;
+                ErrorLoggerService.LogException("DatabaseService.GetProgressPercentagesAsync", ex);
             }
 
             double Calc(double c, double cx, double t) => (t - cx) <= 0 ? 0 : (c / (t - cx)) * 100;
@@ -132,8 +131,7 @@ namespace LocatorAutoPrint.Services
                     {
                         if (await reader.ReadAsync())
                         {
-                            string closedVal = reader["Closed"].ToString();
-                            bool isClosed = closedVal == "1" || closedVal.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            bool isClosed = reader.GetBooleanSafe("Closed");
                             return (true, isClosed);
                         }
                         return (false, false);
@@ -144,22 +142,33 @@ namespace LocatorAutoPrint.Services
 
         public async Task<string> GetStoreNameAsync(string defaultStoreNum, string fallbackStoreName)
         {
-            using (var conn = new SqlConnection(_connectionString))
+            try
             {
-                await conn.OpenAsync();
-                using (var cmd = conn.CreateCommand())
+                using (var conn = new SqlConnection(_connectionString))
                 {
-                    cmd.CommandText = "SELECT STRNAM FROM exclusivesdb.dbo.tblstore WHERE strnum = @strnum";
-                    cmd.Parameters.AddWithValue("@strnum", defaultStoreNum);
-
-                    using (var reader = await cmd.ExecuteReaderAsync())
+                    await conn.OpenAsync();
+                    using (var cmd = conn.CreateCommand())
                     {
-                        if (await reader.ReadAsync())
+                        cmd.CommandText = "SELECT STRNAM FROM exclusivesdb.dbo.tblstore WHERE strnum = @strnum";
+                        cmd.Parameters.AddWithValue("@strnum", defaultStoreNum ?? string.Empty);
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            return reader["STRNAM"].ToString();
+                            if (await reader.ReadAsync())
+                            {
+                                string name = reader.GetStringSafe("STRNAM");
+                                if (!string.IsNullOrWhiteSpace(name))
+                                {
+                                    return name;
+                                }
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                ErrorLoggerService.LogException("DatabaseService.GetStoreNameAsync", ex);
             }
             return fallbackStoreName;
         }
@@ -179,21 +188,18 @@ namespace LocatorAutoPrint.Services
                     {
                         while (await reader.ReadAsync())
                         {
-                            double cleanQty = Convert.ToDouble(reader["EditedQty"]);
+                            double cleanQty = reader.GetDoubleSafe("EditedQty");
                             string qtyStr = cleanQty % 1 == 0 ? cleanQty.ToString("0") : cleanQty.ToString("0.###");
 
-                            string formattedDate = "";
-                            if (reader["CountDate"] != DBNull.Value)
-                            {
-                                formattedDate = Convert.ToDateTime(reader["CountDate"]).ToString("M/d/yy HH:mm:ss");
-                            }
+                            DateTime? countDate = reader.GetDateTimeSafe("CountDate");
+                            string formattedDate = countDate.HasValue ? countDate.Value.ToString("M/d/yy HH:mm:ss") : "";
 
                             records.Add(new CountRecord
                             {
-                                RecNo = reader["RecNo"].ToString(),
-                                UPC = reader["UPC"].ToString(),
-                                SKU = reader["SKU"].ToString(),
-                                Descr = reader["Descr"].ToString(),
+                                RecNo = reader.GetStringSafe("RecNo"),
+                                UPC = reader.GetStringSafe("UPC"),
+                                SKU = reader.GetDecimalStringSafe("SKU", "0", ""),
+                                Descr = reader.GetStringSafe("Descr"),
                                 Qty = qtyStr,
                                 RawQtyForBackup = cleanQty.ToString("0.00"),
                                 FormattedDate = formattedDate,
@@ -223,8 +229,11 @@ namespace LocatorAutoPrint.Services
                 }
             }
 
-            string finalPath = Path.Combine(backupRoot, Path.GetFileName(tempBackup));
-            File.Move(tempBackup, finalPath);
+            if (File.Exists(tempBackup))
+            {
+                string finalPath = Path.Combine(backupRoot, Path.GetFileName(tempBackup));
+                File.Move(tempBackup, finalPath);
+            }
         }
     }
 }

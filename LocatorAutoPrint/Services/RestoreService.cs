@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using LocatorAutoPrint.Models;
@@ -20,7 +21,13 @@ namespace LocatorAutoPrint.Services
 
         public async Task<(bool Success, string Message)> RestoreLocatorAsync(string locatorId)
         {
-            string filePath = Path.Combine(_appBaseDir, "cntsheet", $"{locatorId}.txt");
+            if (string.IsNullOrWhiteSpace(locatorId))
+            {
+                return (false, "Please provide a valid Locator number.");
+            }
+
+            string cleanLocatorId = locatorId.Trim();
+            string filePath = Path.Combine(_appBaseDir, "cntsheet", $"{cleanLocatorId}.txt");
 
             if (!File.Exists(filePath))
                 return (false, $"Backup file not found:\n{filePath}");
@@ -30,8 +37,10 @@ namespace LocatorAutoPrint.Services
             try
             {
                 string[] lines = File.ReadAllLines(filePath);
+                int lineIndex = 0;
                 foreach (var line in lines)
                 {
+                    lineIndex++;
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     if (line.Length < 89) continue;
 
@@ -46,6 +55,11 @@ namespace LocatorAutoPrint.Services
                     });
                 }
 
+                if (records.Count == 0)
+                {
+                    return (false, $"Backup file for Locator {cleanLocatorId} exists but contains no valid records.");
+                }
+
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
@@ -57,10 +71,11 @@ namespace LocatorAutoPrint.Services
                             {
                                 delCmd.Transaction = transaction;
                                 delCmd.CommandText = "DELETE FROM PUREGOLD.dbo.COUNTSHEET WHERE SlotNo = @slotNo";
-                                delCmd.Parameters.AddWithValue("@slotNo", locatorId);
+                                delCmd.Parameters.AddWithValue("@slotNo", cleanLocatorId);
                                 await delCmd.ExecuteNonQueryAsync();
                             }
 
+                            int fallbackRecNo = 1;
                             foreach (var rec in records)
                             {
                                 using (var insCmd = conn.CreateCommand())
@@ -69,37 +84,55 @@ namespace LocatorAutoPrint.Services
                                     insCmd.CommandText = @"
                                         INSERT INTO PUREGOLD.dbo.COUNTSHEET 
                                         (SlotNo, RecNo, CountDate, UPC, SKU, Descr, Qty, EditedQty, Posted, Added, Edited) 
-                                        VALUES (@slotNo, @recNo, @cDate, @upc, @sku, @descr, @qty, 0, 0, 0, 0)";
+                                        VALUES (@slotNo, @recNo, @cDate, @upc, @sku, @descr, @qty, @qty, 0, 0, 0)";
 
-                                    insCmd.Parameters.AddWithValue("@slotNo", locatorId);
-                                    insCmd.Parameters.AddWithValue("@recNo", int.Parse(rec.RecNo));
+                                    insCmd.Parameters.AddWithValue("@slotNo", cleanLocatorId);
 
-                                    if (DateTime.TryParse(rec.FormattedDate, out DateTime parsedDate))
+                                    if (int.TryParse(rec.RecNo, out int parsedRecNo))
+                                        insCmd.Parameters.AddWithValue("@recNo", parsedRecNo);
+                                    else
+                                        insCmd.Parameters.AddWithValue("@recNo", fallbackRecNo);
+
+                                    if (DateTime.TryParse(rec.FormattedDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate) ||
+                                        DateTime.TryParse(rec.FormattedDate, out parsedDate))
                                         insCmd.Parameters.AddWithValue("@cDate", parsedDate);
                                     else
                                         insCmd.Parameters.AddWithValue("@cDate", DateTime.Now);
 
-                                    insCmd.Parameters.AddWithValue("@upc", rec.UPC);
-                                    insCmd.Parameters.AddWithValue("@sku", decimal.Parse(rec.SKU));
-                                    insCmd.Parameters.AddWithValue("@descr", rec.Descr);
-                                    insCmd.Parameters.AddWithValue("@qty", decimal.Parse(rec.Qty));
+                                    insCmd.Parameters.AddWithValue("@upc", rec.UPC ?? string.Empty);
+
+                                    if (decimal.TryParse(rec.SKU, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsedSku))
+                                        insCmd.Parameters.AddWithValue("@sku", parsedSku);
+                                    else
+                                        insCmd.Parameters.AddWithValue("@sku", 0m);
+
+                                    insCmd.Parameters.AddWithValue("@descr", rec.Descr ?? string.Empty);
+
+                                    if (decimal.TryParse(rec.Qty, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal parsedQty))
+                                        insCmd.Parameters.AddWithValue("@qty", parsedQty);
+                                    else
+                                        insCmd.Parameters.AddWithValue("@qty", 0m);
 
                                     await insCmd.ExecuteNonQueryAsync();
                                 }
+                                fallbackRecNo++;
                             }
+
                             transaction.Commit();
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            transaction.Rollback();
+                            try { transaction.Rollback(); } catch { }
+                            ErrorLoggerService.LogException($"RestoreService.RestoreLocatorAsync({cleanLocatorId}) - Transaction Failed", ex);
                             throw;
                         }
                     }
                 }
-                return (true, $"Successfully restored {records.Count} records for Locator {locatorId}.");
+                return (true, $"Successfully restored {records.Count} records for Locator {cleanLocatorId}.");
             }
             catch (Exception ex)
             {
+                ErrorLoggerService.LogException($"RestoreService.RestoreLocatorAsync({cleanLocatorId})", ex);
                 return (false, $"Error during restore process:\n{ex.Message}");
             }
         }

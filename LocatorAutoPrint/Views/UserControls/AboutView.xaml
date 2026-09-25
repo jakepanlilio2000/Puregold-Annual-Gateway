@@ -1,0 +1,253 @@
+<UserControl x:Class="LocatorAutoPrint.Views.UserControls.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="clr-namespace:FontAwesome.Sharp;assembly=FontAwesome.Sharp"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+             Background="{StaticResource Brush.LightGray}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="12,10">
+
+            <!-- 1. APPLICATION & SYSTEM IDENTITY CARD -->
+            <Border Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{StaticResource Brush.BrandGreen}" CornerRadius="6" Width="40" Height="40" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <fa:IconBlock Icon="Store" Foreground="{StaticResource Brush.BrandYellow}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding AppName, Mode=OneWay}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.BrandGreen}" Margin="0,0,6,0"/>
+                            <Border Background="{StaticResource Brush.BrandYellow}" CornerRadius="8" Padding="6,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentVersion, Mode=OneWay}" FontWeight="ExtraBold" FontSize="10" Foreground="{StaticResource Brush.BrandDarkGreen}"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding AppFullName, Mode=OneWay}" FontSize="10" Foreground="#475569" Margin="0,1,0,0"/>
+                        <TextBlock Text="{Binding RuntimePlatform, Mode=OneWay}" FontSize="10" Foreground="#64748B" Margin="0,1,0,0"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Command="{Binding OpenHelpGuideCommand}" Style="{StaticResource SecondaryActionButton}" Height="28" Padding="10,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <fa:IconBlock Icon="BookOpen" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="User Guide" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- 2. SYSTEM & CONNECTION DIAGNOSTICS PANEL -->
+            <Border Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8">
+                <StackPanel>
+                    <Grid Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <fa:IconBlock Icon="Server" Foreground="{StaticResource Brush.BrandGreen}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="System &amp; Connection Diagnostics" Style="{StaticResource Text.Header}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Command="{Binding TestConnectionCommand}" Style="{StaticResource SecondaryActionButton}" Height="28" Padding="10,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <fa:IconBlock Icon="ArrowsRotate" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Test Ping" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Sub-Panel: Local Telemetry -->
+                        <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,4,0">
+                            <StackPanel>
+                                <TextBlock Text="LOCAL TELEMETRY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource Brush.BrandGreen}" Margin="0,0,0,4"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Machine: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding MachineName, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="User: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding WindowsUser, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="IP: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding LocalIpAddress, Mode=OneWay}" FontWeight="Bold" FontSize="10" Foreground="{StaticResource Brush.BrandGreen}"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="MAC: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding MacAddress, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="OS: " FontWeight="SemiBold" FontSize="9" Foreground="#64748B"/>
+                                    <TextBlock Text="{Binding OsArchitecture, Mode=OneWay}" FontSize="9" Foreground="#64748B"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sub-Panel: Database Connection Status -->
+                        <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="4,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="DATABASE TELEMETRY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource Brush.BrandGreen}" Margin="0,0,0,4"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="DB Host: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding DbServer, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Port: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding DbPort, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="Catalog: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding DbInstance, Mode=OneWay}" FontSize="10" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                    <Ellipse Width="7" Height="7" Margin="0,0,5,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#10B981"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDbReachable}" Value="False">
+                                                        <Setter Property="Fill" Value="#EF4444"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding DbHealthDisplay, Mode=OneWay}" FontSize="9" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#065F46"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDbReachable}" Value="False">
+                                                        <Setter Property="Foreground" Value="#991B1B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- 3. INTRANET AUTO-UPDATER CARD (Open FTP Removed) -->
+            <Border Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8">
+                <StackPanel>
+                    <Grid Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <fa:IconBlock Icon="CloudArrowDown" Foreground="{StaticResource Brush.BrandGreen}" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Software Updates (Store Intranet)" Style="{StaticResource Text.Header}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="Host: 192.168.200.177" FontSize="9" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Update Status Box -->
+                    <Border Background="#F8FAFC" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <fa:IconBlock Grid.Column="0" Icon="InfoCircle" Foreground="{StaticResource Brush.BrandGreen}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding UpdateStatus, Mode=OneWay}" FontSize="10" Foreground="#1E293B" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Download Progress Bar (When Downloading) -->
+                    <StackPanel Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6">
+                        <ProgressBar Value="{Binding DownloadProgress}" Maximum="100" Style="{StaticResource ModernProgressBar}" Height="5"/>
+                    </StackPanel>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding CheckUpdateCommand}" Style="{StaticResource PrimaryActionButton}" Height="28" Padding="12,0" Margin="0,0,6,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <fa:IconBlock Icon="ArrowsRotate" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Check for Update" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding DownloadUpdateCommand}" 
+                                Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
+                                Style="{StaticResource WarningActionButton}" Height="28" Padding="12,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <fa:IconBlock Icon="Download" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Download Update" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- 4. DEVELOPER & ESCALATION DIRECTIVE CARD -->
+            <Border Background="{StaticResource Brush.White}" BorderBrush="{StaticResource Brush.NeutralGray}" BorderThickness="1" CornerRadius="6" Padding="12,10">
+                <StackPanel>
+                    <Grid Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <fa:IconBlock Icon="UserCheck" Foreground="{StaticResource Brush.BrandGreen}" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Engineering &amp; Support Escalation" Style="{StaticResource Text.Header}" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Command="{Binding LaunchEmailCommand}" Style="{StaticResource SecondaryActionButton}" Height="28" Padding="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Open Thunderbird email client">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <fa:IconBlock Icon="Envelope" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Email Support" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- Developer Contacts -->
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Developer: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                <TextBlock Text="{Binding DeveloperName, Mode=OneWay}" FontWeight="Bold" FontSize="10" Foreground="#334155"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding StoreLocation, Mode=OneWay}" FontSize="9" Foreground="#64748B" Margin="0,1,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Internal: " FontWeight="SemiBold" FontSize="10" Foreground="#334155"/>
+                                <TextBlock Text="{Binding CompanyEmail, Mode=OneWay}" FontSize="10" Foreground="{StaticResource Brush.BrandGreen}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                <TextBlock Text="External: " FontSize="9" Foreground="#64748B"/>
+                                <TextBlock Text="{Binding PersonalEmail, Mode=OneWay}" FontSize="9" Foreground="#64748B"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Escalation Note Banner -->
+                    <Border Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="4" Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <fa:IconBlock Grid.Column="0" Icon="TriangleExclamation" Foreground="#D97706" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding EscalationDirective, Mode=OneWay}" 
+                                       FontSize="9" FontWeight="Bold" Foreground="#92400E" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+
